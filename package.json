@@ -1,0 +1,23 @@
+{
+  "name": "a2ui-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "web/*",
+    "server/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @a2ui/playground",
+    "dev:server": "npm run dev -w @a2ui/playground-server",
+    "test": "npm run test --workspaces --if-present",
+    "test:parser": "npm run test:parser -w @a2ui/core",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,2 @@
+{"surfaceUpdate":{"surfaceId":"mock-surface","components":[{"id":"root","component":{"Text":{"text":{"literalString":"Hello, A2UI!"},"usageHint":"h2"}}}]}}
+{"beginRendering":{"surfaceId":"mock-surface","root":"root","catalogId":"https://a2ui.org/specification/v0_8/catalogs/minimal/minimal_catalog.json"}}
