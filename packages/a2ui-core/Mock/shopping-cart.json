@@ -1,0 +1,103 @@
+[
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-cart",
+      "components": [
+        {
+          "id": "cart-root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["cart-title", "cart-list"]
+              },
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "cart-title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "我的购物车"
+              },
+              "usageHint": "h3"
+            }
+          }
+        },
+        {
+          "id": "cart-list",
+          "component": {
+            "List": {
+              "children": {
+                "template": {
+                  "componentId": "cart-line",
+                  "dataBinding": "/cart/items"
+                }
+              },
+              "direction": "vertical",
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "cart-line",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/line"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "surface-cart",
+      "root": "cart-root"
+    }
+  },
+  {
+    "dataModelUpdate": {
+      "surfaceId": "surface-cart",
+      "path": "/cart",
+      "contents": [
+        {
+          "key": "items",
+          "valueMap": [
+            {
+              "key": "0",
+              "valueMap": [
+                {
+                  "key": "line",
+                  "valueString": "拿铁 (大杯) ☕ 2 ￥36.00"
+                }
+              ]
+            },
+            {
+              "key": "1",
+              "valueMap": [
+                {
+                  "key": "line",
+                  "valueString": "可颂 🥐 1 ￥12.00"
+                }
+              ]
+            },
+            {
+              "key": "2",
+              "valueMap": [
+                {
+                  "key": "line",
+                  "valueString": "美式 (小杯) ☕ 1 ￥18.00"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

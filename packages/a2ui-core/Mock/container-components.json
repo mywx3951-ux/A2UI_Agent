@@ -1,0 +1,512 @@
+[
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "title",
+                  "divider-1",
+                  "card-block",
+                  "list-block",
+                  "tabs-block",
+                  "row-block",
+                  "modal-block"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "容器类组件"
+              },
+              "usageHint": "h2"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "divider-1",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "card-block",
+          "component": {
+            "Card": {
+              "child": "card-inner"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "card-inner",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "card-title",
+                  "card-text"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "card-title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Card 容器"
+              },
+              "usageHint": "h4"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "card-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Card 通过 child 引用单个子组件。"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "list-block",
+          "component": {
+            "List": {
+              "children": {
+                "explicitList": [
+                  "list-a",
+                  "list-b",
+                  "list-c"
+                ]
+              },
+              "direction": "vertical",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "list-a",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "List item A"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "list-b",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "List item B"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "list-c",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "List item C"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "tabs-block",
+          "component": {
+            "Tabs": {
+              "tabItems": [
+                {
+                  "title": {
+                    "literalString": "Overview"
+                  },
+                  "child": "tab1-body"
+                },
+                {
+                  "title": {
+                    "literalString": "Details"
+                  },
+                  "child": "tab2-body"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "tab1-body",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "tab1-text"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "tab1-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Overview 面板内容"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "tab2-body",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "tab2-text"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "tab2-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Details 面板内容"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "row-block",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "row-a",
+                  "row-b",
+                  "row-c"
+                ]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "row-a",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Row A"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "row-b",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Row B"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "row-c",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Row C"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "modal-block",
+          "component": {
+            "Modal": {
+              "entryPointChild": "modal-entry",
+              "contentChild": "modal-content"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "modal-entry",
+          "component": {
+            "Button": {
+              "child": "modal-entry-label",
+              "primary": true,
+              "action": {
+                "name": "open_modal"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "modal-entry-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "打开弹窗"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "modal-content",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "modal-title",
+                  "modal-body"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "modal-title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "弹窗标题"
+              },
+              "usageHint": "h4"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-containers",
+      "components": [
+        {
+          "id": "modal-body",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "弹窗内容通过 contentChild 引用。"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-containers",
+      "root": "root"
+    }
+  }
+]

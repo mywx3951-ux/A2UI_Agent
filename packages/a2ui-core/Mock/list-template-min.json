@@ -1,0 +1,76 @@
+[
+  {
+    "dataModelUpdate": {
+      "surfaceId": "mock-list-min",
+      "path": "/",
+      "contents": [
+        {
+          "key": "items",
+          "valueMap": [
+            {
+              "key": "a",
+              "valueMap": [
+                {
+                  "key": "label",
+                  "valueString": "A"
+                }
+              ]
+            },
+            {
+              "key": "b",
+              "valueMap": [
+                {
+                  "key": "label",
+                  "valueString": "B"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-list-min",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "List": {
+              "children": {
+                "template": {
+                  "componentId": "item-text",
+                  "dataBinding": "/items"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-list-min",
+      "components": [
+        {
+          "id": "item-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/label"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-list-min",
+      "root": "root"
+    }
+  }
+]

@@ -1,0 +1,195 @@
+[
+  {
+    "dataModelUpdate": {
+      "surfaceId": "mock-list",
+      "path": "/",
+      "contents": [
+        {
+          "key": "products",
+          "valueMap": [
+            {
+              "key": "p1",
+              "valueMap": [
+                {
+                  "key": "name",
+                  "valueString": "手冲咖啡"
+                },
+                {
+                  "key": "price",
+                  "valueString": "¥28"
+                }
+              ]
+            },
+            {
+              "key": "p2",
+              "valueMap": [
+                {
+                  "key": "name",
+                  "valueString": "茉莉花茶"
+                },
+                {
+                  "key": "price",
+                  "valueString": "¥18"
+                }
+              ]
+            },
+            {
+              "key": "p3",
+              "valueMap": [
+                {
+                  "key": "name",
+                  "valueString": "鲜榨果汁"
+                },
+                {
+                  "key": "price",
+                  "valueString": "¥22"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-list",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "title",
+                  "product-list"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-list",
+      "components": [
+        {
+          "id": "title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "动态列表（children.template）"
+              },
+              "usageHint": "h2"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-list",
+      "components": [
+        {
+          "id": "product-list",
+          "component": {
+            "List": {
+              "children": {
+                "template": {
+                  "componentId": "product-card",
+                  "dataBinding": "/products"
+                }
+              },
+              "direction": "vertical",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-list",
+      "components": [
+        {
+          "id": "product-card",
+          "component": {
+            "Card": {
+              "child": "product-row"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-list",
+      "components": [
+        {
+          "id": "product-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "product-name",
+                  "product-price"
+                ]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-list",
+      "components": [
+        {
+          "id": "product-name",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/name"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-list",
+      "components": [
+        {
+          "id": "product-price",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/price"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-list",
+      "root": "root"
+    }
+  }
+]

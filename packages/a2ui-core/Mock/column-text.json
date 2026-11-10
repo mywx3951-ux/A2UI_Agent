@@ -1,0 +1,85 @@
+[
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-column",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "text-1",
+                  "text-2",
+                  "text-3"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-column",
+      "components": [
+        {
+          "id": "text-1",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "First text"
+              },
+              "usageHint": "h1"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-column",
+      "components": [
+        {
+          "id": "text-2",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Second text"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-column",
+      "components": [
+        {
+          "id": "text-3",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Third text"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-column",
+      "root": "root"
+    }
+  }
+]

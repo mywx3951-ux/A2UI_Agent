@@ -1,0 +1,184 @@
+[
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-nested",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "header",
+                  "content",
+                  "footer"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-nested",
+      "components": [
+        {
+          "id": "header",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Nested Tree"
+              },
+              "usageHint": "h1"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-nested",
+      "components": [
+        {
+          "id": "content",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "intro",
+                  "details"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-nested",
+      "components": [
+        {
+          "id": "intro",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "This is a nested Column."
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-nested",
+      "components": [
+        {
+          "id": "details",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "detail-1",
+                  "detail-2",
+                  "detail-3"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-nested",
+      "components": [
+        {
+          "id": "detail-1",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Detail A"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-nested",
+      "components": [
+        {
+          "id": "detail-2",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Detail B"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-nested",
+      "components": [
+        {
+          "id": "detail-3",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Detail C"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-nested",
+      "components": [
+        {
+          "id": "footer",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Footer"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-nested",
+      "root": "root"
+    }
+  }
+]

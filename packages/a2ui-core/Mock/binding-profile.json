@@ -1,0 +1,110 @@
+[
+  {
+    "dataModelUpdate": {
+      "surfaceId": "mock-profile",
+      "path": "/",
+      "contents": [
+        {
+          "key": "user",
+          "valueMap": [
+            {
+              "key": "name",
+              "valueString": "Ada"
+            },
+            {
+              "key": "verified",
+              "valueBoolean": true
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-profile",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "name-text",
+                  "verified-check",
+                  "greeting-text"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-profile",
+      "components": [
+        {
+          "id": "name-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/user/name",
+                "literalString": "Fallback Name"
+              },
+              "usageHint": "h3"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-profile",
+      "components": [
+        {
+          "id": "verified-check",
+          "component": {
+            "CheckBox": {
+              "label": {
+                "literalString": "已认证"
+              },
+              "value": {
+                "path": "/user/verified"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-profile",
+      "components": [
+        {
+          "id": "greeting-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/greeting/title",
+                "literalString": "Welcome"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-profile",
+      "root": "root"
+    }
+  }
+]

@@ -2,11 +2,25 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createElement } from 'react';
-import { parse } from '../../src/parser/index.js';
+import { JsonlBuffer } from '../../src/buffer/index.js';
+import { createParser, parse } from '../../src/parser/index.js';
 import { ErrorType, init } from '../../src/store/index.js';
+import type { A2uiRenderContext } from '../../src/vnode/index.js';
 
 const mockPath = fileURLToPath(
-  new URL('../../Mock/simple-text.jsonl', import.meta.url),
+  new URL('../../Mock/simple-text.json', import.meta.url),
+);
+
+const columnMockPath = fileURLToPath(
+  new URL('../../Mock/column-text.json', import.meta.url),
+);
+
+const nestedMockPath = fileURLToPath(
+  new URL('../../Mock/nested-tree.json', import.meta.url),
+);
+
+const mixedMockPath = fileURLToPath(
+  new URL('../../Mock/mixed-tree.json', import.meta.url),
 );
 
 async function loadMock(): Promise<string> {
@@ -14,7 +28,7 @@ async function loadMock(): Promise<string> {
 }
 
 describe('Parser', () => {
-  it('解析 simple-text.jsonl 得到对应的 Surface', async () => {
+  it('解析 simple-text.json 得到对应的 Surface', async () => {
     const result = parse(await loadMock());
 
     assert.deepEqual(Object.keys(result.surfaceMap), ['mock-surface']);
@@ -31,7 +45,7 @@ describe('Parser', () => {
     );
   });
 
-  it('解析 simple-text.jsonl 得到对应的 HydrateNode', async () => {
+  it('解析 simple-text.json 得到对应的 HydrateNode', async () => {
     const result = parse(await loadMock());
 
     assert.deepEqual(Object.keys(result.hydrateNodeMap), ['root']);
@@ -40,6 +54,7 @@ describe('Parser', () => {
     assert.ok(node, '缺少 id 为 root 的 HydrateNode');
     assert.equal(node.id, 'root');
     assert.equal(node.surfaceId, 'mock-surface');
+    assert.equal(node.hasMounted, false);
 
     assert.ok(node._vnode, 'root 节点缺少 _vnode');
     assert.equal(node._vnode.type, 'Text');
@@ -59,6 +74,149 @@ describe('Parser', () => {
         usageHint: 'h2',
       },
     });
+  });
+
+  it('解析 column-text.json 得到 Column 和三个 Text 节点', async () => {
+    const result = parse(await readFile(columnMockPath, 'utf8'));
+
+    const surface = result.surfaceMap['mock-column'];
+    assert.ok(surface, '缺少 mock-column');
+    assert.equal(surface.id, 'mock-column');
+    assert.equal(surface.beginRender, true);
+    assert.equal(surface.rootNode.id, 'root');
+
+    assert.deepEqual(Object.keys(result.hydrateNodeMap), [
+      'root',
+      'text-1',
+      'text-2',
+      'text-3',
+    ]);
+
+    const rootNode = result.hydrateNodeMap['root'];
+    assert.ok(rootNode, '缺少 root 节点');
+    assert.equal(rootNode.surfaceId, 'mock-column');
+    assert.deepEqual(JSON.parse(rootNode.protocol ?? ''), {
+      Column: {
+        children: {
+          explicitList: ['text-1', 'text-2', 'text-3'],
+        },
+        distribution: 'start',
+        alignment: 'stretch',
+      },
+    });
+
+    for (const id of ['text-1', 'text-2', 'text-3']) {
+      const node = result.hydrateNodeMap[id];
+      assert.ok(node, `缺少 ${id} 节点`);
+      assert.equal(node.surfaceId, 'mock-column');
+    }
+  });
+
+  it('解析 nested-tree.json 得到多层嵌套节点', async () => {
+    const result = parse(await readFile(nestedMockPath, 'utf8'));
+
+    const surface = result.surfaceMap['mock-nested'];
+    assert.ok(surface, '缺少 mock-nested');
+    assert.equal(surface.beginRender, true);
+    assert.equal(surface.rootNode.id, 'root');
+
+    assert.deepEqual(Object.keys(result.hydrateNodeMap), [
+      'root',
+      'header',
+      'content',
+      'intro',
+      'details',
+      'detail-1',
+      'detail-2',
+      'detail-3',
+      'footer',
+    ]);
+
+    const contentNode = result.hydrateNodeMap['content'];
+    assert.ok(contentNode, '缺少 content 节点');
+    assert.deepEqual(JSON.parse(contentNode.protocol ?? ''), {
+      Column: {
+        children: {
+          explicitList: ['intro', 'details'],
+        },
+        distribution: 'start',
+        alignment: 'stretch',
+      },
+    });
+
+    const detailsNode = result.hydrateNodeMap['details'];
+    assert.ok(detailsNode, '缺少 details 节点');
+    assert.deepEqual(JSON.parse(detailsNode.protocol ?? ''), {
+      Column: {
+        children: {
+          explicitList: ['detail-1', 'detail-2', 'detail-3'],
+        },
+        distribution: 'start',
+        alignment: 'stretch',
+      },
+    });
+  });
+
+  it('解析 mixed-tree.json 得到 Column/Row/Text 混合节点', async () => {
+    const result = parse(await readFile(mixedMockPath, 'utf8'));
+
+    const surface = result.surfaceMap['mock-mixed'];
+    assert.ok(surface, '缺少 mock-mixed');
+    assert.equal(surface.beginRender, true);
+    assert.equal(surface.rootNode.id, 'root');
+    assert.equal(Object.keys(result.hydrateNodeMap).length, 14);
+
+    const toolbar = result.hydrateNodeMap['toolbar'];
+    assert.ok(toolbar, '缺少 toolbar 节点');
+    assert.deepEqual(JSON.parse(toolbar.protocol ?? ''), {
+      Row: {
+        children: {
+          explicitList: ['btn-a', 'btn-b', 'btn-c'],
+        },
+        distribution: 'spaceBetween',
+        alignment: 'center',
+      },
+    });
+
+    const stats = result.hydrateNodeMap['stats'];
+    assert.ok(stats, '缺少 stats 节点');
+    assert.deepEqual(JSON.parse(stats.protocol ?? ''), {
+      Row: {
+        children: {
+          explicitList: ['stat-1', 'stat-2'],
+        },
+        distribution: 'spaceAround',
+        alignment: 'center',
+      },
+    });
+  });
+
+  it('支持逐条 parseLine 并在 beginRendering 后生成 Surface', async () => {
+    const jsonl = await readFile(nestedMockPath, 'utf8');
+    const buffer = new JsonlBuffer();
+    const lines = [...buffer.append(jsonl), ...buffer.flush()];
+
+    const parser = createParser();
+    const nodeCounts: number[] = [];
+    const surfaceCounts: number[] = [];
+
+    for (const line of lines) {
+      const result = parser.parseLine(line);
+      nodeCounts.push(Object.keys(result.hydrateNodeMap).length);
+      surfaceCounts.push(Object.keys(result.surfaceMap).length);
+    }
+
+    assert.deepEqual(nodeCounts, [1, 2, 3, 4, 5, 6, 7, 8, 9, 9]);
+    assert.deepEqual(surfaceCounts, [0, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
+
+    const result = parser.getResult();
+    const surface = result.surfaceMap['mock-nested'];
+    assert.ok(surface, '缺少 mock-nested');
+    assert.equal(surface.rootNode.id, 'root');
+
+    parser.reset();
+    assert.deepEqual(Object.keys(parser.getResult().surfaceMap), []);
+    assert.deepEqual(Object.keys(parser.getResult().hydrateNodeMap), []);
   });
 
   it('使用 renderMap 渲染组件并写入 _vnode', async () => {
@@ -159,6 +317,50 @@ describe('Parser', () => {
 
     const vnodeProps = node._vnode.props as { children: string };
     assert.equal(vnodeProps.children, 'second');
+  });
+
+  it('调用 renderMap 时传入 hasMounted 与 markMounted', async () => {
+    let received: A2uiRenderContext | undefined;
+    const marked: string[] = [];
+
+    const renderMap = {
+      Text: (_props: Record<string, unknown>, context: A2uiRenderContext) => {
+        received = context;
+        return createElement('span');
+      },
+    };
+
+    parse(await loadMock(), renderMap, undefined, (id) => marked.push(id));
+
+    assert.ok(received, 'renderMap 未收到上下文');
+    assert.equal(received.hasMounted, false);
+    assert.equal(received.id, 'root');
+    assert.equal(received.surfaceId, 'mock-surface');
+
+    received.markMounted();
+    assert.deepEqual(marked, ['root']);
+  });
+
+  it('已有组件更新时保留 hasMounted 状态', () => {
+    const parser = createParser();
+
+    const first = parser.parseLine(
+      '{"surfaceUpdate":{"surfaceId":"s1","components":[{"id":"root","component":{"Text":{"text":{"literalString":"first"}}}}]}}',
+    );
+
+    const node = first.hydrateNodeMap['root'];
+    assert.ok(node, '缺少 root 节点');
+    assert.equal(node.hasMounted, false);
+
+    node.hasMounted = true;
+
+    parser.parseLine(
+      '{"surfaceUpdate":{"surfaceId":"s1","components":[{"id":"root","component":{"Text":{"text":{"literalString":"second"}}}}]}}',
+    );
+
+    const updated = parser.getResult().hydrateNodeMap['root'];
+    assert.ok(updated, '缺少更新后的 root 节点');
+    assert.equal(updated.hasMounted, true);
   });
 
   it('组件已注册时不会在 store 中产生错误', async () => {

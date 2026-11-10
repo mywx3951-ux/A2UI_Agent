@@ -1,9 +1,18 @@
+import { JsonlBuffer } from '../buffer/index.js';
 import {
   ErrorType,
   type A2uiError,
   type HydrateNode,
   type Surface,
 } from '../store/types.js';
+import {
+  getBindingPath,
+  getLiteralValue,
+  getModelValue,
+  isPlainObject,
+  setModelValue,
+  type A2uiDataModel,
+} from '../store/model.js';
 import { createVNode, type A2uiRenderMap } from '../vnode/index.js';
 
 /** dataModelUpdate 中的单个数据条目 */
@@ -71,7 +80,93 @@ type MessageType = (typeof MESSAGE_TYPES)[number];
 export type ParseErrorHandler = (id: string, error: A2uiError) => void;
 
 /**
- * 解析 A2UI JSONL 文本。
+ * Parser 运行时端口。
+ * 数据模型统一由中心 Store 持有：解析时写入，渲染时读取。
+ * 不传时退化为 Parser 内部的 dataModelMap。
+ */
+export interface A2uiParserRuntime {
+  getDataModel?(surfaceId: string): A2uiDataModel | undefined;
+  setDataModel?(surfaceId: string, model: A2uiDataModel): void;
+  removeDataModel?(surfaceId: string): void;
+  updateModel?(surfaceId: string, path: string, value: unknown): void;
+}
+
+/** 可增量的 A2UI 解析器，适合逐行消费流式消息 */
+export interface A2uiParser {
+  /** 解析一条完整的 JSONL 消息，返回累积结果 */
+  parseLine(line: string): ParseResult;
+  /** 解析一段 JSONL，累积到当前结果 */
+  parse(jsonl: string): ParseResult;
+  /** 获取当前累积结果 */
+  getResult(): ParseResult;
+  /** 清空累积结果 */
+  reset(): void;
+}
+
+function createEmptyResult(): ParseResult {
+  return {
+    surfaceMap: {},
+    hydrateNodeMap: {},
+    dataModelMap: {},
+  };
+}
+
+/**
+ * 创建一个可增量解析的 A2UI Parser。
+ * 每次 parseLine 都会把消息应用到同一份累积结果上。
+ * renderMap 用于把组件协议渲染为对应的 React 实例并写入 _vnode。
+ */
+export function createParser(
+  renderMap: A2uiRenderMap = {},
+  onError?: ParseErrorHandler,
+  markMounted?: (id: string) => void,
+  runtime?: A2uiParserRuntime,
+): A2uiParser {
+  let result = createEmptyResult();
+  let lineNumber = 0;
+
+  const parseLine = (line: string): ParseResult => {
+    const content = line.trim();
+    if (!content) return result;
+
+    lineNumber += 1;
+    applyMessage(
+      content,
+      lineNumber,
+      result,
+      renderMap,
+      onError,
+      markMounted,
+      runtime,
+    );
+
+    return result;
+  };
+
+  const parseJsonl = (jsonl: string): ParseResult => {
+    const buffer = new JsonlBuffer();
+    const lines = [...buffer.append(jsonl), ...buffer.flush()];
+
+    for (const line of lines) {
+      parseLine(line);
+    }
+
+    return result;
+  };
+
+  return {
+    parseLine,
+    parse: parseJsonl,
+    getResult: () => result,
+    reset: () => {
+      result = createEmptyResult();
+      lineNumber = 0;
+    },
+  };
+}
+
+/**
+ * 一次性解析 A2UI JSONL 文本。
  * 每一行是一条独立的 server-to-client 消息。
  * renderMap 用于把组件协议渲染为对应的 React 实例并写入 _vnode。
  * 组件未注册时通过 onError 上报 RENDER_ERROR。
@@ -80,58 +175,64 @@ export function parse(
   jsonl: string,
   renderMap: A2uiRenderMap = {},
   onError?: ParseErrorHandler,
+  markMounted?: (id: string) => void,
+  runtime?: A2uiParserRuntime,
 ): ParseResult {
-  const result: ParseResult = {
-    surfaceMap: {},
-    hydrateNodeMap: {},
-    dataModelMap: {},
-  };
+  return createParser(renderMap, onError, markMounted, runtime).parse(jsonl);
+}
 
-  const lines = jsonl.split(/\r?\n/);
+function applyMessage(
+  content: string,
+  lineNumber: number,
+  result: ParseResult,
+  renderMap: A2uiRenderMap,
+  onError?: ParseErrorHandler,
+  markMounted?: (id: string) => void,
+  runtime?: A2uiParserRuntime,
+): void {
+  let value: unknown;
+  try {
+    value = JSON.parse(content);
+  } catch {
+    throw new Error(`第 ${lineNumber} 行不是合法的 JSON`);
+  }
 
-  lines.forEach((line, index) => {
-    const content = line.trim();
-    if (!content) return;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error(`第 ${lineNumber} 行必须是 JSON 对象`);
+  }
 
-    let value: unknown;
-    try {
-      value = JSON.parse(content);
-    } catch {
-      throw new Error(`第 ${index + 1} 行不是合法的 JSON`);
-    }
+  const message = value as Record<string, unknown>;
+  const type = getMessageType(message);
 
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-      throw new Error(`第 ${index + 1} 行必须是 JSON 对象`);
-    }
-
-    const message = value as Record<string, unknown>;
-    const type = getMessageType(message);
-
-    switch (type) {
-      case 'surfaceUpdate':
-        handleSurfaceUpdate(
-          message.surfaceUpdate as SurfaceUpdateMessage,
-          result,
-          renderMap,
-          onError,
-        );
-        break;
-      case 'beginRendering':
-        handleBeginRendering(message.beginRendering as BeginRenderingMessage, result);
-        break;
-      case 'dataModelUpdate':
-        handleDataModelUpdate(
-          message.dataModelUpdate as DataModelUpdateMessage,
-          result,
-        );
-        break;
-      case 'deleteSurface':
-        handleDeleteSurface(message.deleteSurface as DeleteSurfaceMessage, result);
-        break;
-    }
-  });
-
-  return result;
+  switch (type) {
+    case 'surfaceUpdate':
+      handleSurfaceUpdate(
+        message.surfaceUpdate as SurfaceUpdateMessage,
+        result,
+        renderMap,
+        onError,
+        markMounted,
+        runtime,
+      );
+      break;
+    case 'beginRendering':
+      handleBeginRendering(message.beginRendering as BeginRenderingMessage, result);
+      break;
+    case 'dataModelUpdate':
+      handleDataModelUpdate(
+        message.dataModelUpdate as DataModelUpdateMessage,
+        result,
+        runtime,
+      );
+      break;
+    case 'deleteSurface':
+      handleDeleteSurface(
+        message.deleteSurface as DeleteSurfaceMessage,
+        result,
+        runtime,
+      );
+      break;
+  }
 }
 
 function getMessageType(message: Record<string, unknown>): MessageType {
@@ -155,21 +256,81 @@ function handleSurfaceUpdate(
   result: ParseResult,
   renderMap: A2uiRenderMap,
   onError?: ParseErrorHandler,
+  markMounted?: (id: string) => void,
+  runtime?: A2uiParserRuntime,
 ): void {
   if (!message?.surfaceId || !Array.isArray(message.components)) {
     throw new Error('surfaceUpdate 缺少 surfaceId 或 components');
   }
 
+  // 隐式初始化：组件里同时写了 path 和 literal* 的字段，
+  // 先把 literal 播种进数据模型，之后渲染统一以模型为准。
+  const seeded = seedComponentLiterals(
+    result,
+    message.surfaceId,
+    message.components,
+    runtime,
+  );
+
+  if (seeded) {
+    result.dataModelMap[message.surfaceId] = seeded;
+    runtime?.setDataModel?.(message.surfaceId, seeded);
+  }
+
+  // 绑定解析器读取中心 Store 的最新数据模型，
+  // 因此 dataModelUpdate 晚于 surfaceUpdate 到达时也能在渲染阶段取到值。
+  const resolve = createResolver(result, message.surfaceId, runtime);
+  const updateModel = (path: string, value: unknown) => {
+    const model = setModelValue(
+      result.dataModelMap[message.surfaceId] ?? {},
+      path,
+      value,
+    );
+
+    result.dataModelMap[message.surfaceId] = model;
+
+    if (runtime?.updateModel) {
+      runtime.updateModel(message.surfaceId, path, value);
+    } else {
+      runtime?.setDataModel?.(message.surfaceId, model);
+    }
+  };
+
   for (const component of message.components) {
+    const existingNode = result.hydrateNodeMap[component.id];
+    const hasMounted = existingNode?.hasMounted ?? false;
+
+    const markNodeMounted = () => {
+      markMounted?.(component.id);
+
+      const currentNode = result.hydrateNodeMap[component.id];
+      if (currentNode) {
+        currentNode.hasMounted = true;
+      }
+    };
+
     const node: HydrateNode = {
       id: component.id,
-      _vnode: createVNode(component.component, renderMap, (componentType) => {
-        onError?.(component.id, {
-          type: ErrorType.RENDER_ERROR,
-          content: `组件 "${componentType}" 未注册渲染器（surfaceId: ${message.surfaceId}, componentId: ${component.id}）`,
-        });
-      }),
+      _vnode: createVNode(
+        component.component,
+        renderMap,
+        (componentType) => {
+          onError?.(component.id, {
+            type: ErrorType.RENDER_ERROR,
+            content: `组件 "${componentType}" 未注册渲染器（surfaceId: ${message.surfaceId}, componentId: ${component.id}）`,
+          });
+        },
+        {
+          id: component.id,
+          surfaceId: message.surfaceId,
+          hasMounted,
+          markMounted: markNodeMounted,
+          resolve,
+          updateModel,
+        },
+      ),
       surfaceId: message.surfaceId,
+      hasMounted,
       protocol: JSON.stringify(component.component),
     };
 
@@ -206,27 +367,32 @@ function handleBeginRendering(
   };
 }
 
-/** 处理 dataModelUpdate：按 path 更新对应画布的数据模型 */
+/** 处理 dataModelUpdate：按 path 更新对应画布的数据模型，并同步到中心 Store */
 function handleDataModelUpdate(
   message: DataModelUpdateMessage,
   result: ParseResult,
+  runtime?: A2uiParserRuntime,
 ): void {
   if (!message?.surfaceId || !Array.isArray(message.contents)) {
     throw new Error('dataModelUpdate 缺少 surfaceId 或 contents');
   }
 
-  const current = result.dataModelMap[message.surfaceId] ?? {};
-  result.dataModelMap[message.surfaceId] = applyDataUpdate(
-    current,
-    message.path,
-    message.contents,
-  );
+  const current =
+    runtime?.getDataModel?.(message.surfaceId) ??
+    result.dataModelMap[message.surfaceId] ??
+    {};
+
+  const model = applyDataUpdate(current, message.path, message.contents);
+
+  result.dataModelMap[message.surfaceId] = model;
+  runtime?.setDataModel?.(message.surfaceId, model);
 }
 
 /** 处理 deleteSurface：删除画布、其组件节点和数据模型 */
 function handleDeleteSurface(
   message: DeleteSurfaceMessage,
   result: ParseResult,
+  runtime?: A2uiParserRuntime,
 ): void {
   if (!message?.surfaceId) {
     throw new Error('deleteSurface 缺少 surfaceId');
@@ -236,6 +402,7 @@ function handleDeleteSurface(
 
   delete result.surfaceMap[surfaceId];
   delete result.dataModelMap[surfaceId];
+  runtime?.removeDataModel?.(surfaceId);
 
   for (const nodeId of Object.keys(result.hydrateNodeMap)) {
     if (result.hydrateNodeMap[nodeId].surfaceId === surfaceId) {
@@ -306,6 +473,97 @@ function entryValue(entry: DataModelEntry): unknown {
   return undefined;
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+/**
+ * 创建数据绑定解析器。
+ * 优先按 path 从中心 Store 的数据模型取值，
+ * 取不到时回退到 literal* 字面量。
+ */
+function createResolver(
+  result: ParseResult,
+  surfaceId: string,
+  runtime?: A2uiParserRuntime,
+) {
+  return <T = unknown,>(value: unknown): T | undefined => {
+    const path = getBindingPath(value);
+
+    if (path !== undefined) {
+      const model =
+        runtime?.getDataModel?.(surfaceId) ?? result.dataModelMap[surfaceId];
+      const resolved = getModelValue(model, path);
+
+      if (resolved !== undefined) return resolved as T;
+    }
+
+    return getLiteralValue(value) as T | undefined;
+  };
+}
+
+/**
+ * 扫描组件的属性树，把同时包含 path 和 literal* 的字段播种到数据模型。
+ * 模型里已有值时保留已有值，避免覆盖服务端下发的数据。
+ * 返回写入后的模型；没有变化时返回 undefined。
+ */
+function seedComponentLiterals(
+  result: ParseResult,
+  surfaceId: string,
+  components: Array<{ component: Record<string, unknown> }>,
+  runtime?: A2uiParserRuntime,
+): A2uiDataModel | undefined {
+  const current =
+    runtime?.getDataModel?.(surfaceId) ?? result.dataModelMap[surfaceId] ?? {};
+
+  let model = current;
+  let changed = false;
+
+  for (const component of components) {
+    const seeded = seedValue(model, component.component);
+
+    model = seeded.model;
+    changed = changed || seeded.changed;
+  }
+
+  return changed ? model : undefined;
+}
+
+function seedValue(
+  model: A2uiDataModel,
+  value: unknown,
+): { model: A2uiDataModel; changed: boolean } {
+  if (Array.isArray(value)) {
+    let next = model;
+    let changed = false;
+
+    for (const item of value) {
+      const seeded = seedValue(next, item);
+      next = seeded.model;
+      changed = changed || seeded.changed;
+    }
+
+    return { model: next, changed };
+  }
+
+  if (!isPlainObject(value)) return { model, changed: false };
+
+  let next = model;
+  let changed = false;
+
+  const path = getBindingPath(value);
+  const literal = getLiteralValue(value);
+
+  if (
+    path !== undefined &&
+    literal !== undefined &&
+    getModelValue(next, path) === undefined
+  ) {
+    next = setModelValue(next, path, literal);
+    changed = true;
+  }
+
+  for (const child of Object.values(value)) {
+    const seeded = seedValue(next, child);
+    next = seeded.model;
+    changed = changed || seeded.changed;
+  }
+
+  return { model: next, changed };
 }

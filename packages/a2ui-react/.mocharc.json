@@ -1,0 +1,5 @@
+{
+  "spec": "test/**/*.test.tsx",
+  "node-option": ["import=tsx"],
+  "timeout": 5000
+}

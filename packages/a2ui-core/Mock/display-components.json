@@ -1,0 +1,254 @@
+[
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "title",
+                  "icon-row",
+                  "divider-1",
+                  "image-1",
+                  "video-1",
+                  "audio-1"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "展示类组件"
+              },
+              "usageHint": "h2"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "icon-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "icon-home",
+                  "icon-search",
+                  "icon-favorite",
+                  "icon-settings",
+                  "icon-warning",
+                  "icon-star"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "center"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "icon-home",
+          "component": {
+            "Icon": {
+              "name": {
+                "literalString": "home"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "icon-search",
+          "component": {
+            "Icon": {
+              "name": {
+                "literalString": "search"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "icon-favorite",
+          "component": {
+            "Icon": {
+              "name": {
+                "literalString": "favorite"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "icon-settings",
+          "component": {
+            "Icon": {
+              "name": {
+                "literalString": "settings"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "icon-warning",
+          "component": {
+            "Icon": {
+              "name": {
+                "literalString": "warning"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "icon-star",
+          "component": {
+            "Icon": {
+              "name": {
+                "literalString": "star"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "divider-1",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "image-1",
+          "component": {
+            "Image": {
+              "url": {
+                "literalString": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=abstract%20gradient%20banner%20minimal%20design&image_size=landscape_16_9"
+              },
+              "altText": {
+                "literalString": "示例图片"
+              },
+              "fit": "cover",
+              "usageHint": "largeFeature"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "video-1",
+          "component": {
+            "Video": {
+              "url": {
+                "literalString": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-display",
+      "components": [
+        {
+          "id": "audio-1",
+          "component": {
+            "AudioPlayer": {
+              "url": {
+                "literalString": "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"
+              },
+              "description": {
+                "literalString": "示例音频"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-display",
+      "root": "root"
+    }
+  }
+]

@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 import type { A2uiRenderMap } from '../vnode/index.js';
+import type { A2uiRenderTree } from '../treebuilder/index.js';
+import type { A2uiDataModel } from './model.js';
 
 /** 错误类型枚举 */
 export enum ErrorType {
@@ -37,6 +39,8 @@ export interface HydrateNode {
     _vnode: ReactElement;
     /** 所属画布 ID */
     surfaceId: string;
+    /** 是否已经完成挂载动画 */
+    hasMounted: boolean;
     /** 原始协议内容（如 JSONL 协议数据） */
     protocol?: string;
 }
@@ -49,8 +53,12 @@ export interface A2uiStoreState {
     hydrateNodeMap: Record<string, HydrateNode>;
     /** 所有错误，按 id 索引 */
     errorMap: Record<string, A2uiError>;
+    /** 每个画布的数据模型，按 surfaceId 索引 */
+    dataModelMap: Record<string, A2uiDataModel>;
     /** 组件渲染映射，由 init 传入 */
     renderMap: A2uiRenderMap;
+    /** 组件树渲染回调，由 init 传入 */
+    renderTree?: A2uiRenderTree;
 }
 
 /** 三个 Map 基于 id 的增删改查操作 */
@@ -64,11 +72,21 @@ export interface A2uiStoreActions {
     updateHydrateNode(id: string, patch: Partial<Omit<HydrateNode, 'id'>>): void;
     removeHydrateNode(id: string): void;
     getHydrateNode(id: string): HydrateNode | undefined;
+    markHydrateNodeMounted(id: string): void;
 
     addError(id: string, error: A2uiError): void;
     updateError(id: string, patch: Partial<A2uiError>): void;
     removeError(id: string): void;
     getError(id: string): A2uiError | undefined;
+
+    /** 整体写入某个画布的数据模型（Parser 同步用） */
+    setDataModel(surfaceId: string, model: A2uiDataModel): void;
+    /** 读取某个画布的数据模型 */
+    getDataModel(surfaceId: string): A2uiDataModel | undefined;
+    /** 删除某个画布的数据模型 */
+    removeDataModel(surfaceId: string): void;
+    /** 按路径更新数据模型，并重新渲染组件树 */
+    updateModel(surfaceId: string, path: string, value: unknown): void;
 }
 
 /** 完整的 A2UI Store：数据 + 操作 */

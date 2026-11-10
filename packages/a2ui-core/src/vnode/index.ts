@@ -2,11 +2,38 @@
 
 import { createElement, type ReactElement } from 'react';
 
-/** 组件渲染函数：接收协议属性，返回 React 实例 */
-export type A2uiRender = (props: Record<string, unknown>) => ReactElement;
+/** 解析 A2UI 绑定对象：literal* 字面量或 path 数据模型引用 */
+export type A2uiResolve = <T = unknown>(value: unknown) => T | undefined;
+
+/** 渲染组件时附带的节点上下文 */
+export interface A2uiRenderContext {
+  id: string;
+  surfaceId: string;
+  hasMounted: boolean;
+  markMounted: () => void;
+  /** 解析 { literalString } / { literalNumber } / { path } 等绑定对象 */
+  resolve: A2uiResolve;
+  /** 按路径更新当前画布的数据模型 */
+  updateModel: (path: string, value: unknown) => void;
+}
+
+/** 组件渲染函数：接收协议属性和节点上下文，返回 React 实例 */
+export type A2uiRender = (
+  props: Record<string, unknown>,
+  context: A2uiRenderContext,
+) => ReactElement;
 
 /** 组件名到渲染函数的映射 */
 export type A2uiRenderMap = Record<string, A2uiRender>;
+
+const DEFAULT_CONTEXT: A2uiRenderContext = {
+  id: '',
+  surfaceId: '',
+  hasMounted: true,
+  markMounted: () => {},
+  resolve: () => undefined,
+  updateModel: () => {},
+};
 
 /**
  * 从 A2UI 的 component 包装对象创建虚拟节点。
@@ -17,6 +44,7 @@ export function createVNode(
   component: Record<string, unknown>,
   renderMap: A2uiRenderMap = {},
   onMissingRenderer?: (componentType: string) => void,
+  context: A2uiRenderContext = DEFAULT_CONTEXT,
 ): ReactElement {
   const entries = Object.entries(component);
 
@@ -33,7 +61,7 @@ export function createVNode(
     return createElement(type, componentProps);
   }
 
-  return render(componentProps);
+  return render(componentProps, context);
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

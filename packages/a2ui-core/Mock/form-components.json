@@ -1,0 +1,311 @@
+[
+  {
+    "dataModelUpdate": {
+      "surfaceId": "mock-forms",
+      "path": "/",
+      "contents": [
+        {
+          "key": "user",
+          "valueMap": [
+            {
+              "key": "name",
+              "valueString": "Ada Lovelace"
+            },
+            {
+              "key": "bio",
+              "valueString": "Mathematician, wrote the first algorithm intended for a machine."
+            },
+            {
+              "key": "dob",
+              "valueString": "1815-12-10"
+            },
+            {
+              "key": "subscribed",
+              "valueBoolean": true
+            }
+          ]
+        },
+        {
+          "key": "settings",
+          "valueMap": [
+            {
+              "key": "volume",
+              "valueNumber": 65
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "title",
+                  "divider-1",
+                  "field-name",
+                  "field-bio",
+                  "field-date",
+                  "check-sub",
+                  "check-trial",
+                  "slider-1",
+                  "choice-1",
+                  "button-1"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "表单类组件"
+              },
+              "usageHint": "h2"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "divider-1",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "field-name",
+          "component": {
+            "TextField": {
+              "label": {
+                "literalString": "用户名"
+              },
+              "text": {
+                "path": "/user/name"
+              },
+              "textFieldType": "shortText"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "field-bio",
+          "component": {
+            "TextField": {
+              "label": {
+                "literalString": "简介"
+              },
+              "text": {
+                "path": "/user/bio"
+              },
+              "textFieldType": "longText"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "field-date",
+          "component": {
+            "DateTimeInput": {
+              "value": {
+                "path": "/user/dob"
+              },
+              "enableDate": true,
+              "enableTime": false
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "check-sub",
+          "component": {
+            "CheckBox": {
+              "label": {
+                "literalString": "订阅更新"
+              },
+              "value": {
+                "path": "/user/subscribed"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "check-trial",
+          "component": {
+            "CheckBox": {
+              "label": {
+                "literalString": "开启试用"
+              },
+              "value": {
+                "literalBoolean": false
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "slider-1",
+          "component": {
+            "Slider": {
+              "label": {
+                "literalString": "音量"
+              },
+              "value": {
+                "path": "/settings/volume"
+              },
+              "minValue": 0,
+              "maxValue": 100
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "choice-1",
+          "component": {
+            "MultipleChoice": {
+              "selections": {
+                "literalArray": [
+                  "email",
+                  "sms"
+                ]
+              },
+              "options": [
+                {
+                  "label": {
+                    "literalString": "邮件"
+                  },
+                  "value": "email"
+                },
+                {
+                  "label": {
+                    "literalString": "短信"
+                  },
+                  "value": "sms"
+                },
+                {
+                  "label": {
+                    "literalString": "电话"
+                  },
+                  "value": "phone"
+                }
+              ],
+              "maxAllowedSelections": 2,
+              "variant": "chips"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "button-1",
+          "component": {
+            "Button": {
+              "child": "button-1-label",
+              "primary": true,
+              "action": {
+                "name": "submit_form"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-forms",
+      "components": [
+        {
+          "id": "button-1-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "提交"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-forms",
+      "root": "root"
+    }
+  }
+]

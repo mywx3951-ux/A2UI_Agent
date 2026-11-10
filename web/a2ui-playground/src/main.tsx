@@ -1,4 +1,5 @@
 import 'antd/dist/reset.css';
+import './stream-fade.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';

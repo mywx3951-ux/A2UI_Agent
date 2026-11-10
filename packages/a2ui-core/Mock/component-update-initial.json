@@ -1,0 +1,104 @@
+[
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-update",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "title",
+                  "price-text",
+                  "note-text",
+                  "footer-text"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-update",
+      "components": [
+        {
+          "id": "title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "组件增量更新演示"
+              },
+              "usageHint": "h2"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-update",
+      "components": [
+        {
+          "id": "price-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "价格：¥28"
+              },
+              "usageHint": "h3"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-update",
+      "components": [
+        {
+          "id": "note-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "点击「应用组件更新」，只会更新价格文本，并新增一条提示。"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-update",
+      "components": [
+        {
+          "id": "footer-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "其他组件保持原样"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-update",
+      "root": "root"
+    }
+  }
+]

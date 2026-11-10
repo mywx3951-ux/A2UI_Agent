@@ -1,0 +1,63 @@
+[
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-update",
+      "components": [
+        {
+          "id": "notice-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "新增：限时 8 折"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-update",
+      "components": [
+        {
+          "id": "price-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "价格：¥32（已更新）"
+              },
+              "usageHint": "h3"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-update",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "title",
+                  "price-text",
+                  "notice-text",
+                  "note-text",
+                  "footer-text"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  }
+]

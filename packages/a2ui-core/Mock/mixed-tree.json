@@ -1,0 +1,283 @@
+[
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "title",
+                  "toolbar",
+                  "content",
+                  "footer"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Mixed Column / Row Tree"
+              },
+              "usageHint": "h1"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "toolbar",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "btn-a",
+                  "btn-b",
+                  "btn-c"
+                ]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "btn-a",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Alpha"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "btn-b",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Beta"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "btn-c",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Gamma"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "content",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "intro",
+                  "stats"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "intro",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Column and Row are mixed."
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "stats",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "stat-1",
+                  "stat-2"
+                ]
+              },
+              "distribution": "spaceAround",
+              "alignment": "center"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "stat-1",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "42 users"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "stat-2",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "7 projects"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "footer",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "footer-1",
+                  "footer-2"
+                ]
+              },
+              "distribution": "spaceEvenly",
+              "alignment": "center"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "footer-1",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Footer left"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "mock-mixed",
+      "components": [
+        {
+          "id": "footer-2",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Footer right"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "mock-mixed",
+      "root": "root"
+    }
+  }
+]
