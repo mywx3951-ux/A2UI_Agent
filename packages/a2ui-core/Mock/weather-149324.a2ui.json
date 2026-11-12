@@ -1,0 +1,802 @@
+[
+  {
+    "dataModelUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "path": "/weather",
+      "contents": [
+        {
+          "key": "location",
+          "valueString": "Beijing, China"
+        },
+        {
+          "key": "now",
+          "valueMap": [
+            {
+              "key": "temp",
+              "valueString": "7°"
+            },
+            {
+              "key": "feels",
+              "valueString": "Feels like 5°"
+            },
+            {
+              "key": "humidity",
+              "valueString": "83%"
+            },
+            {
+              "key": "wind",
+              "valueString": "3"
+            },
+            {
+              "key": "condition",
+              "valueString": "Clear sky"
+            },
+            {
+              "key": "icon",
+              "valueString": "sun"
+            }
+          ]
+        },
+        {
+          "key": "today",
+          "valueMap": [
+            {
+              "key": "range",
+              "valueString": "High 11° / Low 0°"
+            }
+          ]
+        },
+        {
+          "key": "source",
+          "valueString": "Live from Open-Meteo, updated 20:30 local time"
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "components": [
+        {
+          "id": "root",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["card", "rain", "source"]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "card",
+          "component": {
+            "Card": {
+              "child": "card-body"
+            }
+          }
+        },
+        {
+          "id": "card-body",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "card-header",
+                  "divider-card-1",
+                  "now-row",
+                  "divider-card-2",
+                  "metrics-row",
+                  "divider-card-3",
+                  "hourly-title",
+                  "hourly-list",
+                  "divider-card-4",
+                  "daily-title",
+                  "daily-list"
+                ]
+              },
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "card-header",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": ["loc-icon", "location-text"]
+              },
+              "distribution": "start",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "loc-icon",
+          "component": {
+            "Icon": {
+              "name": {
+                "literalString": "locationOn"
+              }
+            }
+          }
+        },
+        {
+          "id": "location-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/location"
+              },
+              "usageHint": "h3"
+            }
+          }
+        },
+        {
+          "id": "divider-card-1",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "components": [
+        {
+          "id": "now-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": ["temp-text", "now-column"]
+              },
+              "distribution": "start",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "temp-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/now/temp"
+              },
+              "usageHint": "h1"
+            }
+          }
+        },
+        {
+          "id": "now-column",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["condition-text", "range-text", "feels-text"]
+              },
+              "alignment": "start"
+            }
+          }
+        },
+        {
+          "id": "condition-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/now/condition"
+              },
+              "usageHint": "h4"
+            }
+          }
+        },
+        {
+          "id": "range-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/today/range"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "feels-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/now/feels"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "divider-card-2",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        },
+        {
+          "id": "metrics-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": ["humidity-col", "wind-col"]
+              },
+              "distribution": "start",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "humidity-col",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["humidity-label", "humidity-value"]
+              },
+              "alignment": "start"
+            }
+          }
+        },
+        {
+          "id": "humidity-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "湿度"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "humidity-value",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/now/humidity"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "wind-col",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["wind-label", "wind-value"]
+              },
+              "alignment": "start"
+            }
+          }
+        },
+        {
+          "id": "wind-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "风速"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "wind-value",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/now/wind"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "dataModelUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "path": "/weather",
+      "contents": [
+        {
+          "key": "hourly",
+          "valueMap": [
+            {
+              "key": "0",
+              "valueMap": [
+                { "key": "label", "valueString": "20:00" },
+                { "key": "temp", "valueString": "7°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "1",
+              "valueMap": [
+                { "key": "label", "valueString": "21:00" },
+                { "key": "temp", "valueString": "6°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "2",
+              "valueMap": [
+                { "key": "label", "valueString": "22:00" },
+                { "key": "temp", "valueString": "6°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "3",
+              "valueMap": [
+                { "key": "label", "valueString": "23:00" },
+                { "key": "temp", "valueString": "5°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "4",
+              "valueMap": [
+                { "key": "label", "valueString": "00:00" },
+                { "key": "temp", "valueString": "4°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "5",
+              "valueMap": [
+                { "key": "label", "valueString": "01:00" },
+                { "key": "temp", "valueString": "4°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "6",
+              "valueMap": [
+                { "key": "label", "valueString": "02:00" },
+                { "key": "temp", "valueString": "3°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "7",
+              "valueMap": [
+                { "key": "label", "valueString": "03:00" },
+                { "key": "temp", "valueString": "3°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "8",
+              "valueMap": [
+                { "key": "label", "valueString": "04:00" },
+                { "key": "temp", "valueString": "2°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "9",
+              "valueMap": [
+                { "key": "label", "valueString": "05:00" },
+                { "key": "temp", "valueString": "2°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "10",
+              "valueMap": [
+                { "key": "label", "valueString": "06:00" },
+                { "key": "temp", "valueString": "2°" },
+                { "key": "icon", "valueString": "cloud" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "11",
+              "valueMap": [
+                { "key": "label", "valueString": "07:00" },
+                { "key": "temp", "valueString": "2°" },
+                { "key": "icon", "valueString": "cloud" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "components": [
+        {
+          "id": "divider-card-3",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        },
+        {
+          "id": "hourly-title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "未来 12 小时"
+              },
+              "usageHint": "h4"
+            }
+          }
+        },
+        {
+          "id": "hourly-list",
+          "component": {
+            "List": {
+              "children": {
+                "template": {
+                  "componentId": "hourly-item",
+                  "dataBinding": "/weather/hourly"
+                }
+              },
+              "direction": "horizontal",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "hourly-item",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["hourly-label", "hourly-temp", "hourly-precip"]
+              },
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "hourly-label",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/label"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "hourly-temp",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/temp"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "hourly-precip",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/precip"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "dataModelUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "path": "/weather",
+      "contents": [
+        {
+          "key": "daily",
+          "valueMap": [
+            {
+              "key": "0",
+              "valueMap": [
+                { "key": "label", "valueString": "Today" },
+                { "key": "range", "valueString": "0° / 11°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "1",
+              "valueMap": [
+                { "key": "label", "valueString": "Thu" },
+                { "key": "range", "valueString": "2° / 12°" },
+                { "key": "icon", "valueString": "fog" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "2",
+              "valueMap": [
+                { "key": "label", "valueString": "Fri" },
+                { "key": "range", "valueString": "2° / 12°" },
+                { "key": "icon", "valueString": "sun" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "3",
+              "valueMap": [
+                { "key": "label", "valueString": "Sat" },
+                { "key": "range", "valueString": "2° / 13°" },
+                { "key": "icon", "valueString": "cloud" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "4",
+              "valueMap": [
+                { "key": "label", "valueString": "Sun" },
+                { "key": "range", "valueString": "5° / 11°" },
+                { "key": "icon", "valueString": "cloud" },
+                { "key": "precip", "valueString": "0%" }
+              ]
+            },
+            {
+              "key": "5",
+              "valueMap": [
+                { "key": "label", "valueString": "Mon" },
+                { "key": "range", "valueString": "3° / 7°" },
+                { "key": "icon", "valueString": "cloud" },
+                { "key": "precip", "valueString": "4%" }
+              ]
+            },
+            {
+              "key": "6",
+              "valueMap": [
+                { "key": "label", "valueString": "Tue" },
+                { "key": "range", "valueString": "1° / 8°" },
+                { "key": "icon", "valueString": "cloud" },
+                { "key": "precip", "valueString": "10%" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "components": [
+        {
+          "id": "divider-card-4",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        },
+        {
+          "id": "daily-title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "未来 7 天"
+              },
+              "usageHint": "h4"
+            }
+          }
+        },
+        {
+          "id": "daily-list",
+          "component": {
+            "List": {
+              "children": {
+                "template": {
+                  "componentId": "daily-item",
+                  "dataBinding": "/weather/daily"
+                }
+              },
+              "direction": "vertical",
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "daily-item",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": ["daily-label", "daily-range", "daily-precip"]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "daily-label",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/label"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "daily-range",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/range"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "daily-precip",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/precip"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "dataModelUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "path": "/weather",
+      "contents": [
+        {
+          "key": "rain",
+          "valueMap": [
+            { "key": "0", "valueMap": [{ "key": "x", "valueString": "20:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "1", "valueMap": [{ "key": "x", "valueString": "21:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "2", "valueMap": [{ "key": "x", "valueString": "22:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "3", "valueMap": [{ "key": "x", "valueString": "23:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "4", "valueMap": [{ "key": "x", "valueString": "00:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "5", "valueMap": [{ "key": "x", "valueString": "01:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "6", "valueMap": [{ "key": "x", "valueString": "02:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "7", "valueMap": [{ "key": "x", "valueString": "03:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "8", "valueMap": [{ "key": "x", "valueString": "04:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "9", "valueMap": [{ "key": "x", "valueString": "05:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "10", "valueMap": [{ "key": "x", "valueString": "06:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "11", "valueMap": [{ "key": "x", "valueString": "07:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "12", "valueMap": [{ "key": "x", "valueString": "08:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "13", "valueMap": [{ "key": "x", "valueString": "09:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "14", "valueMap": [{ "key": "x", "valueString": "10:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "15", "valueMap": [{ "key": "x", "valueString": "11:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "16", "valueMap": [{ "key": "x", "valueString": "12:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "17", "valueMap": [{ "key": "x", "valueString": "13:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "18", "valueMap": [{ "key": "x", "valueString": "14:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "19", "valueMap": [{ "key": "x", "valueString": "15:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "20", "valueMap": [{ "key": "x", "valueString": "16:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "21", "valueMap": [{ "key": "x", "valueString": "17:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "22", "valueMap": [{ "key": "x", "valueString": "18:00" }, { "key": "y", "valueString": "0%" }] },
+            { "key": "23", "valueMap": [{ "key": "x", "valueString": "19:00" }, { "key": "y", "valueString": "0%" }] }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "components": [
+        {
+          "id": "rain",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["rain-title", "rain-subtitle", "rain-list"]
+              },
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "rain-title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Chance of rain"
+              },
+              "usageHint": "h4"
+            }
+          }
+        },
+        {
+          "id": "rain-subtitle",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "Next 24 hours · %"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "rain-list",
+          "component": {
+            "List": {
+              "children": {
+                "template": {
+                  "componentId": "rain-point",
+                  "dataBinding": "/weather/rain"
+                }
+              },
+              "direction": "horizontal",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "rain-point",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/y"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather-149324",
+      "components": [
+        {
+          "id": "source",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/source"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "surface-weather-149324",
+      "root": "root"
+    }
+  }
+]

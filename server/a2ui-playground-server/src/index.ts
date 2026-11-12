@@ -5,12 +5,18 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import cors from '@koa/cors';
 import {
+  chatWithModel,
   generateA2ui,
   generateA2uiText,
   getAgentMode,
+  streamChatWithModel,
 } from './agent';
 import { AgentConfigError, parseAgentOutput } from './a2ui';
-import { toSseEvent, type AguiEvent } from './agui';
+import {
+  A2UI_CHUNK_EVENT,
+  toSseEvent,
+  type AguiEvent,
+} from './agui';
 
 // .env 可选：存在时自动加载，不覆盖进程里已有的环境变量
 try {
@@ -72,6 +78,19 @@ function readInput(body: Record<string, unknown>): string {
   return '';
 }
 
+/** 读取图片输入：只接受 data URL 或 http(s) 地址，最多 4 张 */
+function readImages(body: Record<string, unknown>): string[] {
+  const images = body.images;
+
+  if (!Array.isArray(images)) return [];
+
+  return images
+    .filter(
+      (item): item is string => typeof item === 'string' && item.trim() !== '',
+    )
+    .slice(0, 4);
+}
+
 function readPositiveInt(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
 
@@ -109,10 +128,51 @@ router.post('/api/generate', async (ctx) => {
   }
 
   try {
-    const result = await generateA2ui(input);
+    const result = await generateA2ui(input, readImages(body));
 
     ctx.body = {
       messages: result.messages,
+      meta: {
+        model: result.model,
+        durationMs: result.durationMs,
+        mockFile: result.mockFile,
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '未知错误';
+
+    ctx.status = error instanceof AgentConfigError ? 503 : 502;
+    ctx.body = { error: { message } };
+
+    console.error('[a2ui-server] /api/generate failed:', error);
+  }
+});
+
+/** 最基础的模型对话接口：只验证 OpenAI 连通性，不生成 A2UI */
+router.post('/api/chat', async (ctx) => {
+  let body: Record<string, unknown>;
+
+  try {
+    body = await readJsonBody(ctx.req);
+  } catch {
+    ctx.status = 400;
+    ctx.body = { error: { message: '请求体必须是合法的 JSON 对象' } };
+    return;
+  }
+
+  const input = readInput(body);
+
+  if (!input) {
+    ctx.status = 400;
+    ctx.body = { error: { message: 'input 或最后一条 user message 不能为空' } };
+    return;
+  }
+
+  try {
+    const result = await chatWithModel(input);
+
+    ctx.body = {
+      reply: result.reply,
       meta: {
         model: result.model,
         durationMs: result.durationMs,
@@ -124,8 +184,98 @@ router.post('/api/generate', async (ctx) => {
     ctx.status = error instanceof AgentConfigError ? 503 : 502;
     ctx.body = { error: { message } };
 
-    console.error('[a2ui-server] /api/generate failed:', error);
+    console.error('[a2ui-server] /api/chat failed:', error);
   }
+});
+
+/** 流式模型对话：服务端按 token 推送，前端边收边显示 */
+router.post('/api/chat/stream', async (ctx) => {
+  let body: Record<string, unknown>;
+
+  try {
+    body = await readJsonBody(ctx.req);
+  } catch {
+    ctx.status = 400;
+    ctx.body = { error: { message: '请求体必须是合法的 JSON 对象' } };
+    return;
+  }
+
+  const input = readInput(body);
+
+  if (!input) {
+    ctx.status = 400;
+    ctx.body = { error: { message: 'input 或最后一条 user message 不能为空' } };
+    return;
+  }
+
+  const threadId = randomUUID();
+  const runId = randomUUID();
+  const messageId = randomUUID();
+  const stream = new PassThrough();
+  let closed = false;
+
+  ctx.status = 200;
+  ctx.set({
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  ctx.body = stream;
+
+  ctx.res.on('close', () => {
+    closed = true;
+  });
+
+  const send = (event: AguiEvent) => {
+    if (!closed) stream.write(toSseEvent(event));
+  };
+
+  // 同 /api/agent：不 await，先让 Koa 接管 stream
+  void (async () => {
+    try {
+      send({ type: 'RUN_STARTED', threadId, runId, timestamp: Date.now() });
+      send({
+        type: 'STEP_STARTED',
+        stepName: 'chat_completion',
+        timestamp: Date.now(),
+      });
+      send({
+        type: 'TEXT_MESSAGE_START',
+        messageId,
+        role: 'assistant',
+        timestamp: Date.now(),
+      });
+
+      for await (const delta of streamChatWithModel(input)) {
+        if (closed) return;
+
+        send({
+          type: 'TEXT_MESSAGE_CONTENT',
+          messageId,
+          delta,
+          timestamp: Date.now(),
+        });
+      }
+
+      if (closed) return;
+
+      send({ type: 'TEXT_MESSAGE_END', messageId, timestamp: Date.now() });
+      send({
+        type: 'STEP_FINISHED',
+        stepName: 'chat_completion',
+        timestamp: Date.now(),
+      });
+      send({ type: 'RUN_FINISHED', threadId, runId, timestamp: Date.now() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '未知错误';
+
+      send({ type: 'RUN_ERROR', message, timestamp: Date.now() });
+      console.error('[a2ui-server] /api/chat/stream failed:', error);
+    } finally {
+      stream.end();
+    }
+  })();
 });
 
 /** AG-UI SSE 流式接口：把 A2UI 协议文本作为 assistant 文本分块推送 */
@@ -148,6 +298,7 @@ router.post('/api/agent', async (ctx) => {
     return;
   }
 
+  const images = readImages(body);
   const threadId =
     typeof body.threadId === 'string' && body.threadId.trim()
       ? body.threadId
@@ -156,7 +307,6 @@ router.post('/api/agent', async (ctx) => {
     typeof body.runId === 'string' && body.runId.trim()
       ? body.runId
       : randomUUID();
-  const messageId = randomUUID();
 
   const stream = new PassThrough();
   let closed = false;
@@ -179,61 +329,89 @@ router.post('/api/agent', async (ctx) => {
     if (!closed) stream.write(toSseEvent(event));
   };
 
-  try {
-    send({ type: 'RUN_STARTED', threadId, runId, timestamp: Date.now() });
-    send({
-      type: 'STEP_STARTED',
-      stepName: 'generate_a2ui',
-      timestamp: Date.now(),
-    });
-
-    const result = await generateA2uiText(input);
-
-    // 流式输出前先校验协议，避免把非法内容推给前端
-    parseAgentOutput(result.text);
-
-    send({
-      type: 'TEXT_MESSAGE_START',
-      messageId,
-      role: 'assistant',
-      timestamp: Date.now(),
-    });
-
-    const chunkSize = readPositiveInt(process.env.STREAM_CHUNK_SIZE, 80);
-    const intervalMs = readPositiveInt(process.env.STREAM_INTERVAL_MS, 60);
-
-    for (let index = 0; index < result.text.length; index += chunkSize) {
-      if (closed) return;
-
+  // 关键：Koa 要等中间件返回后才开始消费 ctx.body 的流。
+  // 这里不 await，让事件循环立刻回到 Koa，后续 chunk 才能实时写给客户端。
+  void (async () => {
+    try {
+      send({ type: 'RUN_STARTED', threadId, runId, timestamp: Date.now() });
       send({
-        type: 'TEXT_MESSAGE_CONTENT',
-        messageId,
-        delta: result.text.slice(index, index + chunkSize),
+        type: 'STEP_STARTED',
+        stepName: 'generate_a2ui',
         timestamp: Date.now(),
       });
 
-      if (index + chunkSize < result.text.length) {
-        await delay(intervalMs);
+      const result = await generateA2uiText(input, images);
+
+      // 先校验协议，避免把非法内容推给前端；再转成 JSONL 逐行推送
+      const messages = parseAgentOutput(result.text);
+      const jsonl = messages
+        .map((message) => JSON.stringify(message))
+        .join('\n');
+
+      const surfaceId = messages
+        .map(
+          (message) =>
+            (message.beginRendering as { surfaceId?: string } | undefined)
+              ?.surfaceId,
+        )
+        .find((id) => typeof id === 'string' && id !== '');
+
+      const messageId = randomUUID();
+
+      // assistant 文本通道：只用于聊天区展示
+      send({
+        type: 'TEXT_MESSAGE_START',
+        messageId,
+        role: 'assistant',
+        timestamp: Date.now(),
+      });
+
+      const chunkSize = readPositiveInt(process.env.STREAM_CHUNK_SIZE, 80);
+      const intervalMs = readPositiveInt(process.env.STREAM_INTERVAL_MS, 60);
+
+      for (let index = 0; index < jsonl.length; index += chunkSize) {
+        if (closed) return;
+
+        send({
+          type: 'CUSTOM',
+          name: A2UI_CHUNK_EVENT,
+          value: jsonl.slice(index, index + chunkSize),
+          timestamp: Date.now(),
+        });
+
+        if (index + chunkSize < jsonl.length) {
+          await delay(intervalMs);
+        }
       }
+
+      if (closed) return;
+
+      // 协议推送完成后，再给出 assistant 的自然语言说明
+      send({
+        type: 'TEXT_MESSAGE_CONTENT',
+        messageId,
+        delta: `agent完成：已生成界面${
+          surfaceId ? ` ${surfaceId}` : ''
+        }，共 ${messages.length} 条协议消息`,
+        timestamp: Date.now(),
+      });
+      send({ type: 'TEXT_MESSAGE_END', messageId, timestamp: Date.now() });
+
+      send({
+        type: 'STEP_FINISHED',
+        stepName: 'generate_a2ui',
+        timestamp: Date.now(),
+      });
+      send({ type: 'RUN_FINISHED', threadId, runId, timestamp: Date.now() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '未知错误';
+
+      send({ type: 'RUN_ERROR', message, timestamp: Date.now() });
+      console.error('[a2ui-server] /api/agent failed:', error);
+    } finally {
+      stream.end();
     }
-
-    if (closed) return;
-
-    send({ type: 'TEXT_MESSAGE_END', messageId, timestamp: Date.now() });
-    send({
-      type: 'STEP_FINISHED',
-      stepName: 'generate_a2ui',
-      timestamp: Date.now(),
-    });
-    send({ type: 'RUN_FINISHED', threadId, runId, timestamp: Date.now() });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '未知错误';
-
-    send({ type: 'RUN_ERROR', message, timestamp: Date.now() });
-    console.error('[a2ui-server] /api/agent failed:', error);
-  } finally {
-    stream.end();
-  }
+  })();
 });
 
 app.use(cors());

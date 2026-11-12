@@ -1,0 +1,664 @@
+[
+  {
+    "dataModelUpdate": {
+      "surfaceId": "surface-weather",
+      "path": "/weather",
+      "contents": [
+        {
+          "key": "city",
+          "valueString": "上海"
+        },
+        {
+          "key": "date",
+          "valueString": "11月11日 周三"
+        },
+        {
+          "key": "emoji",
+          "valueString": "⛅"
+        },
+        {
+          "key": "temperature",
+          "valueString": "23°"
+        },
+        {
+          "key": "condition",
+          "valueString": "多云转晴"
+        },
+        {
+          "key": "high",
+          "valueString": "最高 26°"
+        },
+        {
+          "key": "low",
+          "valueString": "最低 17°"
+        },
+        {
+          "key": "feelsLike",
+          "valueString": "体感 22°"
+        },
+        {
+          "key": "humidity",
+          "valueString": "64%"
+        },
+        {
+          "key": "wind",
+          "valueString": "东南风 3 级"
+        },
+        {
+          "key": "aqi",
+          "valueString": "42 优"
+        },
+        {
+          "key": "tip",
+          "valueString": "早晚温差较大，出门建议带一件外套。"
+        },
+        {
+          "key": "forecast",
+          "valueMap": [
+            {
+              "key": "0",
+              "valueMap": [
+                {
+                  "key": "day",
+                  "valueString": "今天"
+                },
+                {
+                  "key": "desc",
+                  "valueString": "多云转晴"
+                },
+                {
+                  "key": "range",
+                  "valueString": "17° / 26°"
+                }
+              ]
+            },
+            {
+              "key": "1",
+              "valueMap": [
+                {
+                  "key": "day",
+                  "valueString": "明天"
+                },
+                {
+                  "key": "desc",
+                  "valueString": "晴"
+                },
+                {
+                  "key": "range",
+                  "valueString": "18° / 27°"
+                }
+              ]
+            },
+            {
+              "key": "2",
+              "valueMap": [
+                {
+                  "key": "day",
+                  "valueString": "周五"
+                },
+                {
+                  "key": "desc",
+                  "valueString": "小雨"
+                },
+                {
+                  "key": "range",
+                  "valueString": "16° / 22°"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather",
+      "components": [
+        {
+          "id": "weather-root",
+          "component": {
+            "Card": {
+              "child": "weather-body"
+            }
+          }
+        },
+        {
+          "id": "weather-body",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "header-row",
+                  "divider-top",
+                  "summary-row",
+                  "divider-mid",
+                  "metrics-row",
+                  "forecast-title",
+                  "forecast-list",
+                  "divider-bottom",
+                  "tip-text"
+                ]
+              },
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "header-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": ["location-group", "refresh-button"]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "location-group",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": ["location-icon", "header-text"]
+              },
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "header-text",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["city-text", "date-text"]
+              },
+              "alignment": "start"
+            }
+          }
+        },
+        {
+          "id": "divider-top",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather",
+      "components": [
+        {
+          "id": "location-icon",
+          "component": {
+            "Icon": {
+              "name": {
+                "literalString": "locationOn"
+              }
+            }
+          }
+        },
+        {
+          "id": "city-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/city"
+              },
+              "usageHint": "h3"
+            }
+          }
+        },
+        {
+          "id": "date-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/date"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "button-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "刷新天气"
+              }
+            }
+          }
+        },
+        {
+          "id": "refresh-button",
+          "component": {
+            "Button": {
+              "child": "button-label",
+              "action": {
+                "name": "refreshWeather",
+                "localDataModelUpdate": {
+                  "surfaceId": "surface-weather",
+                  "path": "/weather",
+                  "contents": [
+                    {
+                      "key": "date",
+                      "valueString": "11月11日 周三 · 刚刷新"
+                    },
+                    {
+                      "key": "emoji",
+                      "valueString": "☀️"
+                    },
+                    {
+                      "key": "temperature",
+                      "valueString": "25°"
+                    },
+                    {
+                      "key": "condition",
+                      "valueString": "晴"
+                    },
+                    {
+                      "key": "high",
+                      "valueString": "最高 27°"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather",
+      "components": [
+        {
+          "id": "summary-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": ["weather-emoji", "temp-group", "range-group"]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "weather-emoji",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/emoji"
+              },
+              "usageHint": "h1"
+            }
+          }
+        },
+        {
+          "id": "temp-group",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["temp-text", "condition-text"]
+              },
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "temp-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/temperature"
+              },
+              "usageHint": "h1"
+            }
+          }
+        },
+        {
+          "id": "condition-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/condition"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather",
+      "components": [
+        {
+          "id": "range-group",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["high-text", "low-text", "feels-text"]
+              },
+              "alignment": "end"
+            }
+          }
+        },
+        {
+          "id": "high-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/high"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "low-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/low"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "feels-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/feelsLike"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "divider-mid",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather",
+      "components": [
+        {
+          "id": "metrics-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "humidity-col",
+                  "metrics-divider-1",
+                  "wind-col",
+                  "metrics-divider-2",
+                  "aqi-col"
+                ]
+              },
+              "distribution": "spaceAround",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "humidity-col",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["humidity-label", "humidity-value"]
+              },
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "humidity-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "湿度"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "humidity-value",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/humidity"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather",
+      "components": [
+        {
+          "id": "metrics-divider-1",
+          "component": {
+            "Divider": {
+              "axis": "vertical"
+            }
+          }
+        },
+        {
+          "id": "wind-col",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["wind-label", "wind-value"]
+              },
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "wind-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "风力"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "wind-value",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/wind"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "metrics-divider-2",
+          "component": {
+            "Divider": {
+              "axis": "vertical"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather",
+      "components": [
+        {
+          "id": "aqi-col",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": ["aqi-label", "aqi-value"]
+              },
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "aqi-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "空气质量"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "aqi-value",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/aqi"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "forecast-title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "未来三天"
+              },
+              "usageHint": "h4"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather",
+      "components": [
+        {
+          "id": "forecast-list",
+          "component": {
+            "List": {
+              "children": {
+                "template": {
+                  "componentId": "forecast-row",
+                  "dataBinding": "/weather/forecast"
+                }
+              },
+              "direction": "vertical",
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "forecast-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": ["forecast-day", "forecast-desc", "forecast-range"]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "forecast-day",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/day"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "forecast-desc",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/desc"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "forecast-range",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/range"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "surfaceUpdate": {
+      "surfaceId": "surface-weather",
+      "components": [
+        {
+          "id": "divider-bottom",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        },
+        {
+          "id": "tip-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/tip"
+              },
+              "usageHint": "caption"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "surface-weather",
+      "root": "weather-root"
+    }
+  }
+]

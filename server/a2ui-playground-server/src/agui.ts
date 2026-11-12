@@ -50,6 +50,16 @@ export interface TextMessageEndEvent extends AguiBaseEvent {
   messageId: string;
 }
 
+/** 自定义事件：A2UI 协议文本通过 a2ui.jsonl.chunk 分块推送 */
+export interface CustomEvent extends AguiBaseEvent {
+  type: 'CUSTOM';
+  name: string;
+  value: unknown;
+}
+
+/** A2UI 协议分块事件名，与客户端约定保持一致 */
+export const A2UI_CHUNK_EVENT = 'a2ui.jsonl.chunk';
+
 export type AguiEvent =
   | RunStartedEvent
   | RunFinishedEvent
@@ -58,7 +68,8 @@ export type AguiEvent =
   | StepFinishedEvent
   | TextMessageStartEvent
   | TextMessageContentEvent
-  | TextMessageEndEvent;
+  | TextMessageEndEvent
+  | CustomEvent;
 
 /** 序列化为 SSE 的 data 帧 */
 export function toSseEvent(event: AguiEvent): string {

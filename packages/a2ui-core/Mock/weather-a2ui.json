@@ -1,0 +1,595 @@
+[
+  {
+    "surfaceUpdate": {
+      "surfaceId": "weather-home",
+      "components": [
+        {
+          "id": "weather-root",
+          "component": {
+            "Card": {
+              "child": "weather-column"
+            }
+          }
+        },
+        {
+          "id": "weather-column",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "header-row",
+                  "divider-1",
+                  "now-row",
+                  "divider-2",
+                  "metrics-row",
+                  "divider-3",
+                  "forecast-title",
+                  "forecast-list",
+                  "divider-4",
+                  "action-row"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "header-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "loc-icon",
+                  "city-text"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "loc-icon",
+          "component": {
+            "Icon": {
+              "name": {
+                "literalString": "locationOn"
+              }
+            }
+          }
+        },
+        {
+          "id": "city-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/city"
+              },
+              "usageHint": "h3"
+            }
+          }
+        },
+        {
+          "id": "divider-1",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        },
+        {
+          "id": "now-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "temp-text",
+                  "now-column"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "temp-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/temp"
+              },
+              "usageHint": "h1"
+            }
+          }
+        },
+        {
+          "id": "now-column",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "condition-text",
+                  "range-text",
+                  "updated-text"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "start"
+            }
+          }
+        },
+        {
+          "id": "condition-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "晴"
+              },
+              "usageHint": "h4"
+            }
+          }
+        },
+        {
+          "id": "range-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "最高 30° / 最低 18°"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "updated-text",
+          "component": {
+            "Text": {
+              "text": {
+                "path": "/weather/updatedAt"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "divider-2",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        },
+        {
+          "id": "metrics-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "humidity-col",
+                  "wind-col",
+                  "uv-col"
+                ]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "humidity-col",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "humidity-label",
+                  "humidity-value"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "start"
+            }
+          }
+        },
+        {
+          "id": "humidity-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "湿度"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "humidity-value",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "62%"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "wind-col",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "wind-label",
+                  "wind-value"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "start"
+            }
+          }
+        },
+        {
+          "id": "wind-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "风力"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "wind-value",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "3 级"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "uv-col",
+          "component": {
+            "Column": {
+              "children": {
+                "explicitList": [
+                  "uv-label",
+                  "uv-value"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "start"
+            }
+          }
+        },
+        {
+          "id": "uv-label",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "紫外线"
+              },
+              "usageHint": "caption"
+            }
+          }
+        },
+        {
+          "id": "uv-value",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "中等"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "divider-3",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        },
+        {
+          "id": "forecast-title",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "未来三天"
+              },
+              "usageHint": "h4"
+            }
+          }
+        },
+        {
+          "id": "forecast-list",
+          "component": {
+            "List": {
+              "children": {
+                "explicitList": [
+                  "day-1",
+                  "day-2",
+                  "day-3"
+                ]
+              },
+              "direction": "vertical",
+              "alignment": "stretch"
+            }
+          }
+        },
+        {
+          "id": "day-1",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "day-1-name",
+                  "day-1-cond",
+                  "day-1-range"
+                ]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "day-1-name",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "今天"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "day-1-cond",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "晴"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "day-1-range",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "18° / 30°"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "day-2",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "day-2-name",
+                  "day-2-cond",
+                  "day-2-range"
+                ]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "day-2-name",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "明天"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "day-2-cond",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "多云"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "day-2-range",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "17° / 28°"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "day-3",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "day-3-name",
+                  "day-3-cond",
+                  "day-3-range"
+                ]
+              },
+              "distribution": "spaceBetween",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "day-3-name",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "后天"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "day-3-cond",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "小雨"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "day-3-range",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "16° / 24°"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "divider-4",
+          "component": {
+            "Divider": {
+              "axis": "horizontal"
+            }
+          }
+        },
+        {
+          "id": "action-row",
+          "component": {
+            "Row": {
+              "children": {
+                "explicitList": [
+                  "refresh-btn",
+                  "city-btn"
+                ]
+              },
+              "distribution": "start",
+              "alignment": "center"
+            }
+          }
+        },
+        {
+          "id": "refresh-btn",
+          "component": {
+            "Button": {
+              "child": "refresh-text",
+              "primary": true,
+              "action": {
+                "name": "refreshWeather",
+                "localDataModelUpdate": {
+                  "surfaceId": "weather-home",
+                  "path": "/weather",
+                  "contents": [
+                    {
+                      "key": "updatedAt",
+                      "valueString": "刚刚更新"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "refresh-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "刷新"
+              },
+              "usageHint": "body"
+            }
+          }
+        },
+        {
+          "id": "city-btn",
+          "component": {
+            "Button": {
+              "child": "city-btn-text",
+              "primary": false,
+              "action": {
+                "name": "switchCity",
+                "localDataModelUpdate": {
+                  "surfaceId": "weather-home",
+                  "path": "/weather",
+                  "contents": [
+                    {
+                      "key": "city",
+                      "valueString": "北京"
+                    },
+                    {
+                      "key": "temp",
+                      "valueString": "22°"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "city-btn-text",
+          "component": {
+            "Text": {
+              "text": {
+                "literalString": "切换城市"
+              },
+              "usageHint": "body"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "dataModelUpdate": {
+      "surfaceId": "weather-home",
+      "path": "/weather",
+      "contents": [
+        {
+          "key": "city",
+          "valueString": "杭州"
+        },
+        {
+          "key": "temp",
+          "valueString": "26°"
+        },
+        {
+          "key": "updatedAt",
+          "valueString": "更新于 10:24"
+        }
+      ]
+    }
+  },
+  {
+    "beginRendering": {
+      "surfaceId": "weather-home",
+      "root": "weather-root"
+    }
+  }
+]

@@ -1,161 +1,54 @@
 import {
   useEffect,
-  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
-import { Button, Card, Modal, Space, Tree, Typography } from 'antd';
+import { Button, Empty, Input, Switch, Tag, Typography } from 'antd';
 import {
   createParser,
   init,
   JsonlBuffer,
-  parse,
   renderTreeFromStore,
-  type A2uiParser,
   type A2uiTreeNode,
 } from '@a2ui/core';
 import { renderMap } from '@a2ui/react';
-import simpleText from '../../../packages/a2ui-core/Mock/simple-text.json?raw';
-import columnText from '../../../packages/a2ui-core/Mock/column-text.json?raw';
-import nestedTree from '../../../packages/a2ui-core/Mock/nested-tree.json?raw';
-import mixedTree from '../../../packages/a2ui-core/Mock/mixed-tree.json?raw';
-import displayComponents from '../../../packages/a2ui-core/Mock/display-components.json?raw';
-import containerComponents from '../../../packages/a2ui-core/Mock/container-components.json?raw';
-import formComponents from '../../../packages/a2ui-core/Mock/form-components.json?raw';
-import allComponents from '../../../packages/a2ui-core/Mock/all-components.json?raw';
-import bindingProfile from '../../../packages/a2ui-core/Mock/binding-profile.json?raw';
-import listTemplate from '../../../packages/a2ui-core/Mock/list-template.json?raw';
-import shoppingCart from '../../../packages/a2ui-core/Mock/shopping-cart.json?raw';
-import localUpdate from '../../../packages/a2ui-core/Mock/local-update.json?raw';
-import componentUpdateInitial from '../../../packages/a2ui-core/Mock/component-update-initial.json?raw';
-import componentUpdatePatch from '../../../packages/a2ui-core/Mock/component-update-patch.json?raw';
+import { API_BASE_URL, streamAgent, streamChat } from './agent-client';
 
-type MockKey =
-  | 'text'
-  | 'column'
-  | 'nested'
-  | 'mixed'
-  | 'display'
-  | 'container'
-  | 'form'
-  | 'all'
-  | 'json'
-  | 'list'
-  | 'cart'
-  | 'local'
-  | 'update';
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  status: 'streaming' | 'done' | 'error';
+  /** 用户附带的多模态图片 */
+  images?: string[];
+}
 
-const MOCK_KEYS: MockKey[] = [
-  'text',
-  'column',
-  'nested',
-  'mixed',
-  'display',
-  'container',
-  'form',
-  'all',
-  'json',
-  'list',
-  'cart',
-  'local',
-  'update',
-];
+interface Feedback {
+  type: 'success' | 'danger';
+  text: string;
+}
 
-const MOCKS: Record<
-  MockKey,
-  { label: string; jsonl: string; patch?: string }
-> = {
-  text: {
-    label: '单个 Text',
-    jsonl: simpleText,
-  },
-  column: {
-    label: 'Column + 3 Text',
-    jsonl: columnText,
-  },
-  nested: {
-    label: '嵌套 Column',
-    jsonl: nestedTree,
-  },
-  mixed: {
-    label: 'Row + Column 混合',
-    jsonl: mixedTree,
-  },
-  all: {
-    label: '全部 18 个组件',
-    jsonl: allComponents,
-  },
-  display: {
-    label: '展示类组件',
-    jsonl: displayComponents,
-  },
-  container: {
-    label: '容器类组件',
-    jsonl: containerComponents,
-  },
-  form: {
-    label: '表单类组件',
-    jsonl: formComponents,
-  },
-  json: {
-    label: 'JSON 数组流（绑定）',
-    jsonl: bindingProfile,
-  },
-  list: {
-    label: '动态列表（template）',
-    jsonl: listTemplate,
-  },
-  cart: {
-    label: '购物车列表（template）',
-    jsonl: shoppingCart,
-  },
-  local: {
-    label: '本地更新（Button → Text）',
-    jsonl: localUpdate,
-  },
-  update: {
-    label: '组件增量更新',
-    jsonl: componentUpdateInitial,
-    patch: componentUpdatePatch,
-  },
-};
+/** 单次请求最多附带的图片数量，与服务端保持一致 */
+const MAX_IMAGES = 4;
 
-/** 模拟模型 token 输出的块大小与间隔 */
-const STREAM_CHUNK_SIZE = 50;
-const STREAM_INTERVAL_MS = 50;
+let messageSeq = 0;
 
-/** 非 SSE 接口测试配置 */
-const API_BASE_URL = 'http://localhost:3000';
-const API_TEST_INPUT = '生成一个购物车页面';
-
-function splitJsonl(jsonl: string): string[] {
-  const buffer = new JsonlBuffer();
-  return [...buffer.append(jsonl), ...buffer.flush()];
+function nextMessageId(prefix: string): string {
+  messageSeq += 1;
+  return `${prefix}-${Date.now()}-${messageSeq}`;
 }
 
 function useA2uiStore(store: ReturnType<typeof init>) {
   return useSyncExternalStore(store.subscribe, store.getState, store.getState);
 }
 
-interface TreeNodeData {
-  key: string;
-  title: string;
-  children?: TreeNodeData[];
-}
-
-function toTreeData(node: A2uiTreeNode): TreeNodeData {
-  return {
-    key: node.id,
-    title: `${node.id} · ${node.type}`,
-    children:
-      node.children.length > 0 ? node.children.map(toTreeData) : undefined,
-  };
-}
-
-function collectTreeKeys(node: A2uiTreeNode): string[] {
-  return [node.id, ...node.children.flatMap(collectTreeKeys)];
-}
+const WELCOME_MESSAGE: ChatMessage = {
+  id: 'welcome',
+  role: 'assistant',
+  text: '你好，我是 A2UI Agent。在左侧描述你想要的界面，我会调用服务端生成 A2UI 协议并实时渲染到右侧。',
+  status: 'done',
+};
 
 export default function App() {
   const [renderedTree, setRenderedTree] = useState<A2uiTreeNode | null>(null);
@@ -164,48 +57,170 @@ export default function App() {
   );
   const state = useA2uiStore(store);
 
-  const [mockKey, setMockKey] = useState<MockKey>('nested');
-  const [open, setOpen] = useState(false);
-  const [receivedMessages, setReceivedMessages] = useState(0);
-  const [receivedChars, setReceivedChars] = useState(0);
+  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
+  const [input, setInput] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [chatOnly, setChatOnly] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [patchApplied, setPatchApplied] = useState(false);
-  const [apiLoading, setApiLoading] = useState(false);
-  const [apiFeedback, setApiFeedback] = useState<
-    { type: 'success' | 'danger'; text: string } | null
-  >(null);
-  const streamTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const parserRef = useRef<A2uiParser | null>(null);
+  const [streamedChars, setStreamedChars] = useState(0);
+  const [protocolMessages, setProtocolMessages] = useState(0);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
-  const jsonl = MOCKS[mockKey].jsonl;
-  const totalChars = jsonl.length;
-  const totalMessages = useMemo(() => splitJsonl(jsonl).length, [jsonl]);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const stopStreaming = () => {
-    if (streamTimerRef.current) {
-      clearInterval(streamTimerRef.current);
-      streamTimerRef.current = null;
+  // 新消息或流式进度更新时，聊天列表自动滚到底部
+  useEffect(() => {
+    const list = listRef.current;
+
+    if (list) {
+      list.scrollTop = list.scrollHeight;
     }
-    setIsStreaming(false);
+  }, [messages]);
+
+  const updateMessage = (id: string, patch: Partial<ChatMessage>) => {
+    setMessages((previous) =>
+      previous.map((message) =>
+        message.id === id ? { ...message, ...patch } : message,
+      ),
+    );
   };
 
-  const startStream = () => {
-    stopStreaming();
-    setApiFeedback(null);
+  /** 把本地图片转成 data URL，最多保留 MAX_IMAGES 张 */
+  const addImages = (files: FileList | null) => {
+    if (!files) return;
 
+    const candidates = Array.from(files).filter((file) =>
+      file.type.startsWith('image/'),
+    );
+    const remaining = MAX_IMAGES - images.length;
+
+    for (const file of candidates.slice(0, remaining)) {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') return;
+
+        setImages((previous) =>
+          previous.length >= MAX_IMAGES
+            ? previous
+            : [...previous, reader.result as string],
+        );
+      };
+
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((previous) =>
+      previous.filter((_, itemIndex) => itemIndex !== index),
+    );
+  };
+
+  /** 清空上一次渲染结果，准备接收新一轮协议 */
+  const resetRender = () => {
     store.setState({
       surfaceMap: {},
       hydrateNodeMap: {},
       errorMap: {},
       dataModelMap: {},
     });
-    setReceivedMessages(0);
-    setReceivedChars(0);
-    setIsStreaming(true);
-    setPatchApplied(false);
-
-    // 清空上一次的渲染树
     renderTreeFromStore(store);
+  };
+
+  /** 仅测试模型对话：不走 A2UI 解析与渲染 */
+  const sendChat = async (content: string) => {
+    const userMessageId = nextMessageId('user');
+    const assistantMessageId = nextMessageId('assistant');
+    const startedAt = Date.now();
+
+    setInput('');
+    setFeedback(null);
+    setIsStreaming(true);
+    setMessages((previous) => [
+      ...previous,
+      { id: userMessageId, role: 'user', text: content, status: 'done' },
+      {
+        id: assistantMessageId,
+        role: 'assistant',
+        text: '正在生成中…',
+        status: 'streaming',
+      },
+    ]);
+
+    let reply = '';
+
+    try {
+      await streamChat(content, {
+        onTextDelta: (delta) => {
+          reply += delta;
+          updateMessage(assistantMessageId, { text: reply });
+        },
+      });
+
+      updateMessage(assistantMessageId, {
+        text: reply || '模型没有返回内容。',
+        status: 'done',
+      });
+      setFeedback({
+        type: 'success',
+        text: `流式对话完成：${Date.now() - startedAt}ms`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '未知错误';
+
+      updateMessage(assistantMessageId, {
+        text: `对话失败：${message}`,
+        status: 'error',
+      });
+      setFeedback({
+        type: 'danger',
+        text: `调用 /api/chat/stream 失败：${message}。请确认 .env 中的 OPENAI_API_KEY 已配置。`,
+      });
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  const send = async () => {
+    const content = input.trim();
+
+    if (!content || isStreaming) return;
+
+    if (chatOnly) {
+      await sendChat(content);
+      return;
+    }
+
+    const userMessageId = nextMessageId('user');
+    const assistantMessageId = nextMessageId('assistant');
+    const pendingImages = images;
+
+    setInput('');
+    setImages([]);
+    setFeedback(null);
+    setStreamedChars(0);
+    setProtocolMessages(0);
+    setIsStreaming(true);
+    setMessages((previous) => [
+      ...previous,
+      {
+        id: userMessageId,
+        role: 'user',
+        text: content,
+        status: 'done',
+        images: pendingImages.length > 0 ? pendingImages : undefined,
+      },
+      {
+        id: assistantMessageId,
+        role: 'assistant',
+        text: '正在请求服务端…',
+        status: 'streaming',
+      },
+    ]);
+
+    resetRender();
 
     // 数据模型统一由 Store 持有：Parser 解析时写入，渲染时读取
     const parser = createParser(
@@ -223,10 +238,12 @@ export default function App() {
       },
     );
     const buffer = new JsonlBuffer();
-    parserRef.current = parser;
 
-    let cursor = 0;
-    let messageCount = 0;
+    let chars = 0;
+    let count = 0;
+    // 服务端返回的 assistant 文本；有值时优先于本地进度文案
+    let serverText = '';
+    let hasServerText = false;
 
     const syncAndRender = () => {
       const result = parser.getResult();
@@ -234,383 +251,406 @@ export default function App() {
         surfaceMap: { ...result.surfaceMap },
         hydrateNodeMap: { ...result.hydrateNodeMap },
       });
-
-      // 由 SDK 决定：状态更新后重新构建并调用 renderTree
       renderTreeFromStore(store);
     };
 
-    const finish = (timer: ReturnType<typeof setInterval>) => {
-      clearInterval(timer);
-      if (streamTimerRef.current === timer) {
-        streamTimerRef.current = null;
-      }
-      setIsStreaming(false);
-    };
-
-    const handleCompletedLines = (lines: string[]) => {
+    const consume = (lines: string[]) => {
       if (lines.length === 0) return;
 
       for (const line of lines) {
         parser.parseLine(line);
-        messageCount += 1;
+        count += 1;
       }
 
-      setReceivedMessages(messageCount);
+      setProtocolMessages(count);
       syncAndRender();
+
+      if (!hasServerText) {
+        updateMessage(assistantMessageId, {
+          text: `正在生成 UI… 已解析 ${count} 条协议消息`,
+        });
+      }
     };
 
-    const timer = setInterval(() => {
-      if (cursor >= jsonl.length) {
-        handleCompletedLines(buffer.flush());
-        finish(timer);
-        return;
-      }
-
-      // 模拟模型逐块输出原始 JSON 文本，而不是预先切好整行
-      const chunk = jsonl.slice(cursor, cursor + STREAM_CHUNK_SIZE);
-      cursor += chunk.length;
-      setReceivedChars(cursor);
-
-      handleCompletedLines(buffer.append(chunk));
-    }, STREAM_INTERVAL_MS);
-
-    streamTimerRef.current = timer;
-  };
-
-  /**
-   * 模拟 LLM 第二轮返回：只发送差异组件，
-   * Parser 按 id 覆盖对应节点，其他节点保持原对象。
-   */
-  const applyPatch = () => {
-    const parser = parserRef.current;
-    const patch = MOCKS[mockKey].patch;
-
-    if (!parser || !patch || isStreaming) return;
-
-    const buffer = new JsonlBuffer();
-    const lines = [...buffer.append(patch), ...buffer.flush()];
-
-    for (const line of lines) {
-      parser.parseLine(line);
-    }
-
-    const result = parser.getResult();
-    store.setState({
-      surfaceMap: { ...result.surfaceMap },
-      hydrateNodeMap: { ...result.hydrateNodeMap },
-    });
-
-    renderTreeFromStore(store);
-    setPatchApplied(true);
-  };
-
-  // 首次进入和切换 Mock 时重新播放流式构建
-  useEffect(() => {
-    startStream();
-    return () => stopStreaming();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mockKey]);
-
-  const treeData = useMemo(
-    () => (renderedTree ? [toTreeData(renderedTree)] : []),
-    [renderedTree],
-  );
-  const expandedKeys = useMemo(
-    () => (renderedTree ? collectTreeKeys(renderedTree) : []),
-    [renderedTree],
-  );
-
-  const hasRenderedSurface = Object.keys(state.surfaceMap).length > 0;
-  const activeSurfaceId =
-    Object.keys(state.surfaceMap)[0] ?? Object.keys(state.dataModelMap)[0];
-
-  const snapshot = {
-    surfaceMap: state.surfaceMap,
-    hydrateNodeMap: state.hydrateNodeMap,
-    errorMap: state.errorMap,
-    dataModelMap: state.dataModelMap,
-  };
-
-  /** 模拟客户端写回数据模型，验证 Store 驱动的重新渲染 */
-  const simulateUpdateModel = () => {
-    if (!activeSurfaceId) return;
-
-    const model = store.getState().getDataModel(activeSurfaceId) ?? {};
-    const cart = model.cart;
-
-    // 购物车场景：向 /cart/items 追加一行，验证 dataModel 驱动的列表动态渲染
-    if (cart !== null && typeof cart === 'object' && !Array.isArray(cart)) {
-      const cartModel = cart as Record<string, unknown>;
-      const items =
-        cartModel.items !== null &&
-        typeof cartModel.items === 'object' &&
-        !Array.isArray(cartModel.items)
-          ? (cartModel.items as Record<string, unknown>)
-          : {};
-
-      let index = Object.keys(items).length;
-
-      while (`${index}` in items) index += 1;
-
-      store.getState().updateModel(activeSurfaceId, `/cart/items/${index}`, {
-        line: `新商品 ${index + 1} 🛒 1 ￥20.00`,
-      });
-      return;
-    }
-
-    const products = model.products;
-
-    // 动态列表场景：往集合里追加一项，验证列表自动增长
-    if (
-      products !== null &&
-      typeof products === 'object' &&
-      !Array.isArray(products)
-    ) {
-      const keys = Object.keys(products);
-      let index = keys.length + 1;
-
-      while (`p${index}` in products) index += 1;
-
-      store.getState().updateModel(activeSurfaceId, `/products/p${index}`, {
-        name: `新商品 ${index}`,
-        price: `¥${20 + index}`,
-      });
-      return;
-    }
-
-    store.getState().updateModel(activeSurfaceId, '/user/name', 'Grace Hopper');
-  };
-
-  /** 调用 Server 的非 SSE 接口，把返回的 messages 直接交给 Parser 渲染 */
-  const testNonSseApi = async () => {
-    stopStreaming();
-    setApiLoading(true);
-    setApiFeedback(null);
-
     try {
-      const response = await fetch(`${API_BASE_URL}/api/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
+      await streamAgent(content, {
+        images: pendingImages,
+        onChunk: (chunk) => {
+          chars += chunk.length;
+          setStreamedChars(chars);
+          consume(buffer.append(chunk));
         },
-        body: JSON.stringify({ input: API_TEST_INPUT }),
-      });
-
-      const payload = (await response.json()) as {
-        messages?: unknown[];
-        meta?: { model?: string; durationMs?: number };
-        error?: { message?: string };
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error?.message ?? `HTTP ${response.status}`);
-      }
-
-      if (!Array.isArray(payload.messages)) {
-        throw new Error('响应缺少 messages 数组');
-      }
-
-      const text = JSON.stringify(payload.messages);
-
-      store.setState({
-        surfaceMap: {},
-        hydrateNodeMap: {},
-        errorMap: {},
-        dataModelMap: {},
-      });
-      setPatchApplied(false);
-      parserRef.current = null;
-      renderTreeFromStore(store);
-
-      const result = parse(
-        text,
-        renderMap,
-        store.getState().addError,
-        store.getState().markHydrateNodeMounted,
-        {
-          getDataModel: (surfaceId) => store.getState().getDataModel(surfaceId),
-          setDataModel: (surfaceId, model) =>
-            store.getState().setDataModel(surfaceId, model),
-          removeDataModel: (surfaceId) =>
-            store.getState().removeDataModel(surfaceId),
-          updateModel: (surfaceId, path, value) =>
-            store.getState().updateModel(surfaceId, path, value),
+        onTextDelta: (delta) => {
+          hasServerText = true;
+          serverText += delta;
+          updateMessage(assistantMessageId, { text: serverText });
         },
-      );
-
-      store.setState({
-        surfaceMap: { ...result.surfaceMap },
-        hydrateNodeMap: { ...result.hydrateNodeMap },
+        onMessage: (text) => {
+          hasServerText = true;
+          serverText = text;
+          updateMessage(assistantMessageId, { text });
+        },
       });
 
-      renderTreeFromStore(store);
+      // 流结束：把缓冲区里已完整的最后一批消息也解析掉
+      consume(buffer.flush());
 
-      setApiFeedback({
+      const surfaceId = Object.keys(parser.getResult().surfaceMap)[0];
+
+      if (hasServerText) {
+        updateMessage(assistantMessageId, { status: 'done' });
+      } else {
+        updateMessage(assistantMessageId, {
+          text:
+            count > 0
+              ? `已生成 UI${surfaceId ? `（${surfaceId}）` : ''}，共 ${count} 条协议消息。`
+              : '服务端没有返回可渲染的协议消息。',
+          status: 'done',
+        });
+      }
+      setFeedback({
         type: 'success',
-        text: `非 SSE 接口成功：${payload.messages.length} 条消息，model=${
-          payload.meta?.model ?? 'unknown'
-        }，耗时 ${payload.meta?.durationMs ?? 0}ms`,
+        text: `AG-UI 流式返回完成：${count} 条协议消息 / ${chars} 字符`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知错误';
 
-      setApiFeedback({
+      updateMessage(assistantMessageId, {
+        text: `生成失败：${message}`,
+        status: 'error',
+      });
+      setFeedback({
         type: 'danger',
-        text: `非 SSE 接口调用失败：${message}。请确认 Server 已在 ${API_BASE_URL} 启动。`,
+        text: `调用 /api/agent 失败：${message}。请确认 Server 已在 ${API_BASE_URL} 启动。`,
       });
     } finally {
-      setApiLoading(false);
+      setIsStreaming(false);
     }
   };
+
+  const activeSurfaceId = Object.keys(state.surfaceMap)[0];
+  const errorCount = Object.keys(state.errorMap).length;
 
   return (
     <main
       style={{
-        minHeight: '100vh',
-        padding: 32,
-        boxSizing: 'border-box',
+        display: 'flex',
+        height: '100vh',
+        overflow: 'hidden',
         background: '#f5f5f5',
       }}
     >
-      <Typography.Title level={3} style={{ marginTop: 0 }}>
-        A2UI Playground
-      </Typography.Title>
-
-      <Space wrap style={{ marginBottom: 16 }}>
-        {MOCK_KEYS.map((key) => (
-          <Button
-            key={key}
-            type={mockKey === key ? 'primary' : 'default'}
-            onClick={() => setMockKey(key)}
+      {/* 左侧：对话区，占页面 30% */}
+      <aside
+        style={{
+          width: '30%',
+          minWidth: 320,
+          display: 'flex',
+          flexDirection: 'column',
+          background: '#fff',
+          borderRight: '1px solid #f0f0f0',
+        }}
+      >
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid #f0f0f0' }}>
+          <Typography.Title level={4} style={{ margin: 0 }}>
+            A2UI Agent
+          </Typography.Title>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {chatOnly
+              ? '仅测试模型对话能力，不渲染 A2UI 组件'
+              : '输入需求，服务端返回 A2UI 协议并实时渲染'}
+          </Typography.Text>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 10,
+            }}
           >
-            {MOCKS[key].label}
-          </Button>
-        ))}
-        <Button onClick={startStream} loading={isStreaming}>
-          重新播放流
-        </Button>
-        <Button onClick={testNonSseApi} loading={apiLoading}>
-          测试非 SSE 接口
-        </Button>
-        <Button onClick={simulateUpdateModel} disabled={!activeSurfaceId}>
-          模拟 updateModel
-        </Button>
-        {MOCKS[mockKey].patch && (
-          <Button
-            type="primary"
-            ghost
-            onClick={applyPatch}
-            disabled={isStreaming || receivedMessages === 0 || patchApplied}
-          >
-            应用组件更新（LLM 第二轮）
-          </Button>
-        )}
-      </Space>
+            <Switch
+              size="small"
+              checked={chatOnly}
+              onChange={setChatOnly}
+              disabled={isStreaming}
+            />
+            <Typography.Text style={{ fontSize: 12 }}>
+              仅测试模型对话
+            </Typography.Text>
+          </div>
+        </div>
 
-      {apiFeedback ? (
-        <Typography.Paragraph
-          type={apiFeedback.type}
-          style={{ marginBottom: 16 }}
+        <div
+          ref={listRef}
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: 16,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            background: '#fafafa',
+          }}
         >
-          {apiFeedback.text}
-        </Typography.Paragraph>
-      ) : (
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-          字符流：{receivedChars} / {totalChars} 字符 · 已解析 {receivedMessages} /
-          {totalMessages} 条消息
-          {isStreaming ? '（推送中…）' : '（已完成）'}
-        </Typography.Paragraph>
-      )}
+          {messages.map((message) => (
+            <ChatBubble key={message.id} message={message} />
+          ))}
+        </div>
 
-      {patchApplied && (
-        <Typography.Paragraph type="success" style={{ marginBottom: 16 }}>
-          已应用增量补丁：只提交 price-text 的更新与 notice-text 的新增，
-          其余组件的 hydrateNode 对象未变化。
-        </Typography.Paragraph>
-      )}
+        <div style={{ padding: 12, borderTop: '1px solid #f0f0f0' }}>
+          {images.length > 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                marginBottom: 8,
+                flexWrap: 'wrap',
+              }}
+            >
+              {images.map((src, index) => (
+                <div
+                  key={`${index}-${src.slice(0, 24)}`}
+                  style={{ position: 'relative' }}
+                >
+                  <img
+                    src={src}
+                    alt={`附件 ${index + 1}`}
+                    style={{
+                      width: 56,
+                      height: 56,
+                      objectFit: 'cover',
+                      borderRadius: 6,
+                      border: '1px solid #f0f0f0',
+                      display: 'block',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="移除图片"
+                    onClick={() => removeImage(index)}
+                    style={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -6,
+                      width: 18,
+                      height: 18,
+                      padding: 0,
+                      border: 'none',
+                      borderRadius: 9,
+                      background: 'rgba(0, 0, 0, 0.65)',
+                      color: '#fff',
+                      fontSize: 12,
+                      lineHeight: '18px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
-      <Card title="渲染预览" style={{ marginBottom: 16 }}>
-        <div style={{ minHeight: 64 }}>
-          {renderedTree ? (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(event) => {
+              addImages(event.target.files);
+              event.target.value = '';
+            }}
+          />
+
+          <Input.TextArea
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder={
+              chatOnly
+                ? '输入任意内容测试模型对话，Enter 发送'
+                : '描述你想要的界面，Enter 发送，Shift + Enter 换行'
+            }
+            autoSize={{ minRows: 2, maxRows: 5 }}
+            disabled={isStreaming}
+            onPressEnter={(event) => {
+              if (!event.shiftKey) {
+                event.preventDefault();
+                void send();
+              }
+            }}
+          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {!chatOnly ? (
+                <Button
+                  size="small"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isStreaming || images.length >= MAX_IMAGES}
+                >
+                  添加图片
+                </Button>
+              ) : null}
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {isStreaming
+                  ? chatOnly
+                    ? '对话中…'
+                    : `生成中… 已接收 ${streamedChars} 字符`
+                  : 'Enter 发送'}
+              </Typography.Text>
+            </div>
+            <Button
+              type="primary"
+              onClick={() => void send()}
+              loading={isStreaming}
+              disabled={!input.trim()}
+            >
+              发送
+            </Button>
+          </div>
+        </div>
+      </aside>
+
+      {/* 右侧：组件预览区，占剩余 70% */}
+      <section
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 24,
+          boxSizing: 'border-box',
+          gap: 12,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div>
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              组件预览
+            </Typography.Title>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {chatOnly
+                ? '仅模型对话模式，暂不渲染 UI'
+                : activeSurfaceId
+                  ? `surface: ${activeSurfaceId}`
+                  : '等待服务端返回…'}
+            </Typography.Text>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {chatOnly ? <Tag color="blue">模型对话测试</Tag> : null}
+            {chatOnly && isStreaming ? (
+              <Tag color="processing">流式对话中</Tag>
+            ) : null}
+            {!chatOnly && isStreaming ? (
+              <Tag color="processing">流式生成中</Tag>
+            ) : null}
+            {!chatOnly && !isStreaming && protocolMessages > 0 ? (
+              <Tag color="success">已完成</Tag>
+            ) : null}
+            {!chatOnly && protocolMessages > 0 ? (
+              <Tag>{protocolMessages} 条消息</Tag>
+            ) : null}
+            {errorCount > 0 ? <Tag color="error">{errorCount} 个渲染错误</Tag> : null}
+          </div>
+        </div>
+
+        <div
+          style={{
+            flex: 1,
+            overflow: 'auto',
+            padding: 24,
+            background: '#fff',
+            border: '1px solid #f0f0f0',
+            borderRadius: 8,
+            boxSizing: 'border-box',
+          }}
+        >
+          {chatOnly ? (
+            <Empty description="「仅测试模型对话」已开启，右侧不渲染 A2UI 组件" />
+          ) : renderedTree ? (
             renderedTree.vnode
           ) : (
-            <Typography.Text type="secondary">等待组件消息…</Typography.Text>
+            <Empty description="在左侧输入需求并发送，生成的 UI 会显示在这里" />
           )}
         </div>
 
-        {renderedTree && !hasRenderedSurface && (
-          <Typography.Text
-            type="secondary"
-            style={{ display: 'block', marginTop: 8 }}
-          >
-            流式构建中，等待 beginRendering…
+        {feedback ? (
+          <Typography.Text type={feedback.type}>
+            {feedback.text}
           </Typography.Text>
-        )}
-      </Card>
-
-      <Card title="数据模型（Store）" style={{ marginBottom: 16 }}>
-        <pre
-          style={{
-            margin: 0,
-            maxHeight: 240,
-            overflow: 'auto',
-            padding: 12,
-            background: '#fafafa',
-            borderRadius: 8,
-            fontSize: 12,
-            lineHeight: 1.6,
-          }}
-        >
-          {JSON.stringify(state.dataModelMap, null, 2)}
-        </pre>
-      </Card>
-
-      <Card title="组件树（id · 类型）" style={{ marginBottom: 16 }}>
-        {renderedTree ? (
-          <Tree
-            treeData={treeData}
-            expandedKeys={expandedKeys}
-            showLine
-            selectable={false}
-          />
-        ) : (
-          <Typography.Text type="secondary">等待组件消息…</Typography.Text>
-        )}
-      </Card>
-
-      <Button type="primary" onClick={() => setOpen(true)}>
-        查看 Store
-      </Button>
-
-      <Modal
-        title="Store 状态"
-        open={open}
-        onCancel={() => setOpen(false)}
-        footer={null}
-        width={860}
-      >
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-          {Object.keys(state.surfaceMap).length} 个 Surface，
-          {Object.keys(state.hydrateNodeMap).length} 个 HydrateNode，
-          {Object.keys(state.errorMap).length} 个 Error
-        </Typography.Paragraph>
-
-        <pre
-          style={{
-            margin: 0,
-            maxHeight: '60vh',
-            overflow: 'auto',
-            padding: 16,
-            background: '#fafafa',
-            borderRadius: 8,
-            fontSize: 13,
-            lineHeight: 1.6,
-          }}
-        >
-          {JSON.stringify(snapshot, null, 2)}
-        </pre>
-      </Modal>
+        ) : null}
+      </section>
     </main>
+  );
+}
+
+function ChatBubble({ message }: { message: ChatMessage }) {
+  const isUser = message.role === 'user';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: isUser ? 'flex-end' : 'flex-start',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '85%',
+          padding: '10px 12px',
+          borderRadius: 12,
+          border: isUser ? 'none' : '1px solid #f0f0f0',
+          background: isUser ? '#1677ff' : '#fff',
+          color: message.status === 'error' ? '#cf1322' : isUser ? '#fff' : 'rgba(0, 0, 0, 0.88)',
+          fontSize: 14,
+          lineHeight: 1.6,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        }}
+      >
+        {message.images?.length ? (
+          <div
+            style={{
+              display: 'flex',
+              gap: 6,
+              marginBottom: 6,
+              flexWrap: 'wrap',
+            }}
+          >
+            {message.images.map((src, index) => (
+              <img
+                key={`${index}-${src.slice(0, 24)}`}
+                src={src}
+                alt={`附件 ${index + 1}`}
+                style={{
+                  width: 72,
+                  height: 72,
+                  objectFit: 'cover',
+                  borderRadius: 6,
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
+        {message.text}
+        {message.status === 'streaming' ? (
+          <span className="a2ui-chat-cursor" />
+        ) : null}
+      </div>
+    </div>
   );
 }
