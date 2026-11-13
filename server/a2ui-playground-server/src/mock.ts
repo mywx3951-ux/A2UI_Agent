@@ -1,4 +1,5 @@
-// Mock 协议来源：读取 packages/a2ui-core/Mock 下的标准 A2UI JSON
+// [暂时停用] Mock 协议读取：当前主流程统一走真实模型，本文件保留供后续恢复或本地演示
+// Mock 数据同时仍被 packages/a2ui-core 的测试用作协议 fixture
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';

@@ -45,8 +45,8 @@ export interface StreamAgentOptions {
   currentProtocol?: string;
   /** 最近几轮对话 */
   history?: Array<{ role: 'user' | 'assistant'; content: string }>;
-  /** 本轮要修改的目标组件 id */
-  targetComponentId?: string;
+  /** 本轮要修改的目标组件 id 列表（支持一次选中多个） */
+  targetComponentIds?: string[];
 }
 
 export interface StreamAgentResult {
@@ -115,7 +115,9 @@ export async function streamAgent(
       images: options.images?.length ? options.images : undefined,
       currentProtocol: options.currentProtocol,
       history: options.history?.length ? options.history : undefined,
-      targetComponentId: options.targetComponentId,
+      targetComponentIds: options.targetComponentIds?.length
+        ? options.targetComponentIds
+        : undefined,
     }),
   });
 
@@ -218,14 +220,15 @@ export async function streamChat(
   return { reply };
 }
 
+/*
+ * [暂时停用] HTML 生成客户端。
+ * 当前 Playground 主流程只使用 A2UI JSON，服务端 /api/html/stream 也已一并注释。
+ * 需要恢复时取消注释即可。
 export interface StreamHtmlOptions {
-  /** 多模态输入：data URL 或 http(s) 图片地址 */
   images?: string[];
-  /** 收到一段 HTML 代码时触发 */
   onDelta?: (delta: string) => void;
 }
 
-/** 调用 POST /api/html/stream，逐段接收标准 HTML + CSS */
 export async function streamHtml(
   input: string,
   options: StreamHtmlOptions = {},
@@ -270,6 +273,7 @@ export async function streamHtml(
 
   return { html };
 }
+*/
 
 /** 读取 SSE 响应体，每解析出一个 data 帧就回调一次 */
 async function readSseFrames(

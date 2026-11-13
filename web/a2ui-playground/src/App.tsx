@@ -153,8 +153,8 @@ export default function App() {
   const [streamedChars, setStreamedChars] = useState(0);
   const [protocolCount, setProtocolCount] = useState(0);
   const [protocolJson, setProtocolJson] = useState('');
-  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(
-    null,
+  const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>(
+    [],
   );
   const [showJson, setShowJson] = useState(true);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -189,29 +189,32 @@ export default function App() {
     }
   }, [protocolJson, isStreaming]);
 
-  // 高亮当前选中的组件
+  // 高亮所有选中的组件
   useEffect(() => {
     const container = previewRef.current;
 
     if (!container) return;
 
-    container
-      .querySelectorAll('[data-a2ui-selected="true"]')
-      .forEach((element) => element.removeAttribute('data-a2ui-selected'));
+    const selected = new Set(selectedComponentIds);
 
-    if (!selectedComponentId) return;
+    container.querySelectorAll('[data-a2ui-id]').forEach((element) => {
+      const id = element.getAttribute('data-a2ui-id');
 
-    const selector = `[data-a2ui-id="${selectedComponentId.replace(
-      /"/g,
-      '\\"',
-    )}"]`;
-    const element = container.querySelector(selector);
+      if (id && selected.has(id)) {
+        element.setAttribute('data-a2ui-selected', 'true');
+      } else {
+        element.removeAttribute('data-a2ui-selected');
+      }
+    });
+  }, [selectedComponentIds, renderedTree]);
 
-    element?.setAttribute('data-a2ui-selected', 'true');
-  }, [selectedComponentId, renderedTree]);
-
-  /** 点击预览中的组件：记录 Component ID */
+  /**
+   * Ctrl（Windows / Linux）或 Command（macOS）+ 点击预览组件：
+   * 切换该组件的选中状态，支持一次选中多个。
+   */
   const handlePreviewClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (!event.ctrlKey && !event.metaKey) return;
+
     const target = (event.target as HTMLElement).closest('[data-a2ui-id]');
 
     if (!target) return;
@@ -222,7 +225,11 @@ export default function App() {
 
     event.preventDefault();
     event.stopPropagation();
-    setSelectedComponentId(id);
+    setSelectedComponentIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((item) => item !== id)
+        : [...previous, id],
+    );
   };
 
   const updateMessage = (id: string, patch: Partial<ChatMessage>) => {
@@ -335,7 +342,8 @@ export default function App() {
     const userMessageId = nextMessageId('user');
     const assistantMessageId = nextMessageId('assistant');
     const pendingImages = images;
-    const targetComponentId = selectedComponentId ?? undefined;
+    const targetComponentIds =
+      selectedComponentIds.length > 0 ? selectedComponentIds : undefined;
     const isUpdate =
       protocolRef.current.length > 0 && parserRef.current !== null;
     const currentProtocol = isUpdate
@@ -348,7 +356,7 @@ export default function App() {
 
     setInput('');
     setImages([]);
-    setSelectedComponentId(null);
+    setSelectedComponentIds([]);
     setFeedback(null);
     setStreamedChars(0);
     setIsStreaming(true);
@@ -366,8 +374,8 @@ export default function App() {
       {
         id: userMessageId,
         role: 'user',
-        text: targetComponentId
-          ? `${content}\n\n[目标组件: ${targetComponentId}]`
+        text: targetComponentIds
+          ? `${content}\n\n[目标组件: ${targetComponentIds.join(', ')}]`
           : content,
         status: 'done',
         images: pendingImages.length > 0 ? pendingImages : undefined,
@@ -446,7 +454,7 @@ export default function App() {
         images: pendingImages,
         currentProtocol,
         history,
-        targetComponentId,
+        targetComponentIds,
         onChunk: (chunk) => {
           chars += chunk.length;
           setStreamedChars(chars);
@@ -574,7 +582,7 @@ export default function App() {
               onChange={(checked) => {
                 setChatOnly(checked);
 
-                if (checked) setSelectedComponentId(null);
+                if (checked) setSelectedComponentIds([]);
               }}
               disabled={isStreaming}
             />
@@ -602,24 +610,43 @@ export default function App() {
         </div>
 
         <div style={{ padding: 12, borderTop: '1px solid #f0f0f0' }}>
-          {selectedComponentId && !chatOnly ? (
+          {selectedComponentIds.length > 0 && !chatOnly ? (
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
                 marginBottom: 8,
+                flexWrap: 'wrap',
               }}
             >
-              <Tag
-                color="blue"
-                closable
-                onClose={() => setSelectedComponentId(null)}
-              >
-                目标组件：{selectedComponentId}
-              </Tag>
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                下一条消息将针对该组件
+                目标组件：
+              </Typography.Text>
+              {selectedComponentIds.map((id) => (
+                <Tag
+                  key={id}
+                  color="blue"
+                  closable
+                  onClose={() =>
+                    setSelectedComponentIds((previous) =>
+                      previous.filter((item) => item !== id),
+                    )
+                  }
+                >
+                  {id}
+                </Tag>
+              ))}
+              <Button
+                size="small"
+                type="link"
+                style={{ padding: 0 }}
+                onClick={() => setSelectedComponentIds([])}
+              >
+                清空
+              </Button>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                下一条消息将针对这些组件
               </Typography.Text>
             </div>
           ) : null}
@@ -841,11 +868,17 @@ export default function App() {
                   style={{
                     padding: '8px 12px',
                     borderBottom: '1px solid #f0f0f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                     fontSize: 12,
                     color: '#595959',
                   }}
                 >
-                  预览
+                  <span>预览</span>
+                  <span style={{ color: '#bfbfbf' }}>
+                    Ctrl / ⌘ + 点击可多选
+                  </span>
                 </div>
                 <div
                   ref={previewRef}

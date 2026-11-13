@@ -53,6 +53,20 @@
 }
 ```
 
+列表数据必须用带 `key` 的 `valueMap` 条目数组表示，`key` 使用 `"0"`、`"1"` 这样的索引：
+
+```json
+{
+  "key": "cities",
+  "valueMap": [
+    { "key": "0", "valueMap": [{ "key": "name", "valueString": "杭州" }] },
+    { "key": "1", "valueMap": [{ "key": "name", "valueString": "北京" }] }
+  ]
+}
+```
+
+不要写成 `"valueMap": [[...], [...]]`。`List.children.template.dataBinding` 应指向该列表路径。
+
 ### beginRendering
 
 ```json
@@ -86,14 +100,14 @@
 7. 如果用户只是提问、不需要修改 UI，输出空数组 `[]`。
 8. 不要在增量更新中重新定义未变化的组件，避免不必要的覆盖。
 
-## 指定组件操作
+## 指定组件操作（可多选）
 
-当上下文中给出「本轮目标组件 id」时：
+当上下文中给出「本轮目标组件 id 列表」时：
 
-1. 本轮只允许修改或删除该目标组件，不要改动其他组件。
-2. 更新组件：输出该 id 的 `surfaceUpdate`，保持 id 不变。
-3. 删除组件：修改它的父组件 `children`，把该 id 从 `explicitList` / `child` / `tabItems` 中移除。
-4. 如果目标组件不存在，输出空数组 `[]`，不要臆造。
+1. 本轮只允许修改或删除列表中的组件，不要改动其他组件。
+2. 可以一次修改多个目标组件，分别输出它们的 `surfaceUpdate`，保持 id 不变。
+3. 删除组件：修改它们各自的父组件 `children`，把这些 id 从 `explicitList` / `child` / `tabItems` 中移除。
+4. 如果某个目标组件不存在，忽略它，不要臆造。
 5. 不要因为指定了目标组件就重新输出整页协议。
 
 ## 组件使用规则
@@ -227,6 +241,7 @@ Catalog 中所有组件，以及扩展组件 `OpenLink`，都支持可选的 `st
 - [ ] 所有组件类型都在 Catalog 中。
 - [ ] 所有子组件 id 都存在，`beginRendering.root` 存在。
 - [ ] 动态数据都有 `dataModelUpdate` 提供，绑定路径能对应上。
+- [ ] 列表数据的 `valueMap` 使用带 `key` 的条目对象，没有写成嵌套数组。
 - [ ] 自定义样式只通过各组件的 `style` 字段表达，且都是合法的 camelCase CSS 属性。
 
 ## 当前渲染器 Catalog（组件与属性以此为准）

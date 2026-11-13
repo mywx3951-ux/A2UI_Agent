@@ -112,6 +112,41 @@ describe('Parser', () => {
     }
   });
 
+  it('valueMap 支持「条目数组的数组」写法并生成列表', () => {
+    const result = parse(
+      JSON.stringify([
+        {
+          dataModelUpdate: {
+            surfaceId: 'weather-widget',
+            path: '/weather',
+            contents: [
+              {
+                key: 'cities',
+                valueMap: [
+                  [
+                    { key: 'name', valueString: '杭州' },
+                    { key: 'temp', valueString: '26°' },
+                  ],
+                  [
+                    { key: 'name', valueString: '北京' },
+                    { key: 'temp', valueString: '24°' },
+                  ],
+                ],
+              },
+            ],
+          },
+        },
+      ]),
+    );
+
+    assert.deepEqual(result.dataModelMap['weather-widget'].weather, {
+      cities: [
+        { name: '杭州', temp: '26°' },
+        { name: '北京', temp: '24°' },
+      ],
+    });
+  });
+
   it('解析 nested-tree.json 得到多层嵌套节点', async () => {
     const result = parse(await readFile(nestedMockPath, 'utf8'));
 

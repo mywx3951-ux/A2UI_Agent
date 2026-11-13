@@ -21,7 +21,11 @@ export interface DataModelEntry {
   valueString?: string;
   valueNumber?: number;
   valueBoolean?: boolean;
-  valueMap?: DataModelEntry[];
+  /**
+   * 标准写法是带 key 的条目数组；
+   * 兼容模型输出「条目数组的数组」来表示列表的情况。
+   */
+  valueMap?: DataModelEntry[] | DataModelEntry[][];
 }
 
 /** surfaceUpdate：添加或更新画布上的组件定义 */
@@ -457,9 +461,29 @@ function entriesToObject(
   return result;
 }
 
+/**
+ * 兼容两种 valueMap：
+ * - 标准：带 key 的条目数组 → 对象
+ * - 模型常见输出：条目数组的数组 → 真正的数组，供 template 列表按索引展开
+ */
+function normalizeValueMap(
+  valueMap: DataModelEntry[] | DataModelEntry[][],
+): unknown {
+  if (
+    valueMap.length > 0 &&
+    valueMap.every((item) => Array.isArray(item))
+  ) {
+    return (valueMap as DataModelEntry[][]).map((group) =>
+      entriesToObject(group),
+    );
+  }
+
+  return entriesToObject(valueMap as DataModelEntry[]);
+}
+
 function entryValue(entry: DataModelEntry): unknown {
   if (entry.valueMap !== undefined) {
-    return entriesToObject(entry.valueMap);
+    return normalizeValueMap(entry.valueMap);
   }
   if (entry.valueString !== undefined) {
     return entry.valueString;

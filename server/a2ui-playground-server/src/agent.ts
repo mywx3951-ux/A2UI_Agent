@@ -1,13 +1,13 @@
-// A2UI Agent：默认使用 Mock 协议，也可通过环境变量切换到 OpenAI
+// A2UI Agent：调用 DeepSeek / OpenAI 兼容模型生成 A2UI 协议
 
 import OpenAI from 'openai';
 import {
   AgentConfigError,
   AgentOutputError,
   parseAgentOutput,
-  type A2uiMessage,
 } from './a2ui';
-import { readMockProtocol } from './mock';
+// [暂时停用] Mock 模式不再参与主流程
+// import { readMockProtocol } from './mock';
 import { HTML_SYSTEM_PROMPT, SYSTEM_PROMPT } from './prompt';
 import { A2UI_TOOLS, executeTool } from './tools';
 
@@ -21,13 +21,14 @@ export interface GenerateTextResult {
   mockFile?: string;
 }
 
-export interface GenerateA2uiResult {
-  messages: A2uiMessage[];
-  model: string;
-  durationMs: number;
-  /** Mock 模式下实际命中的文件名 */
-  mockFile?: string;
-}
+// [暂时停用] 非流式 A2UI 生成结果，仅 /api/generate 使用
+// export interface GenerateA2uiResult {
+//   messages: A2uiMessage[];
+//   model: string;
+//   durationMs: number;
+//   /** Mock 模式下实际命中的文件名 */
+//   mockFile?: string;
+// }
 
 export interface ChatResult {
   reply: string;
@@ -41,17 +42,19 @@ export interface A2uiConversationContext {
   currentProtocol?: string;
   /** 最近几轮对话 */
   history?: Array<{ role: 'user' | 'assistant'; content: string }>;
-  /** 本轮要修改或删除的目标组件 id */
-  targetComponentId?: string;
+  /** 本轮要修改或删除的目标组件 id 列表 */
+  targetComponentIds?: string[];
 }
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
 const DEFAULT_TIMEOUT_MS = 60_000;
 
+/**
+ * 当前仅保留真实模型模式，Mock 模式已暂时停用。
+ * 保留这个函数是为了 /health 与启动日志继续输出当前模式。
+ */
 export function getAgentMode(): AgentMode {
-  return process.env.A2UI_AGENT_MODE?.trim().toLowerCase() === 'openai'
-    ? 'openai'
-    : 'mock';
+  return 'openai';
 }
 
 /** 读取 OpenAI 配置；缺少 Key 时抛出 AgentConfigError */
@@ -81,16 +84,17 @@ export async function generateA2uiText(
   images: string[] = [],
   context: A2uiConversationContext = {},
 ): Promise<GenerateTextResult> {
-  if (getAgentMode() === 'mock') {
-    const mock = readMockProtocol();
-
-    return {
-      text: mock.text,
-      model: 'mock',
-      durationMs: 0,
-      mockFile: mock.file,
-    };
-  }
+  // [暂时停用] Mock 模式：现在统一调用真实模型
+  // if (getAgentMode() === 'mock') {
+  //   const mock = readMockProtocol();
+  //
+  //   return {
+  //     text: mock.text,
+  //     model: 'mock',
+  //     durationMs: 0,
+  //     mockFile: mock.file,
+  //   };
+  // }
 
   const { client, model } = createOpenAIClient();
   const startedAt = Date.now();
@@ -229,9 +233,9 @@ function buildUserContent(
     sections.push(`最近对话：\n${lines}`);
   }
 
-  if (context.targetComponentId?.trim()) {
+  if (context.targetComponentIds && context.targetComponentIds.length > 0) {
     sections.push(
-      `本轮目标组件 id：${context.targetComponentId.trim()}\n请只修改或删除该组件，不要改动其他组件。删除组件时，从父组件的 children 中移除该 id。`,
+      `本轮目标组件 id 列表：${context.targetComponentIds.join(', ')}\n请只修改或删除这些组件，不要改动其他组件。删除组件时，从父组件的 children 中移除这些 id。`,
     );
   }
 
@@ -357,17 +361,17 @@ export async function* streamHtmlWithModel(
   }
 }
 
-/** 生成并校验 A2UI 消息数组 */
-export async function generateA2ui(
-  input: string,
-  images: string[] = [],
-): Promise<GenerateA2uiResult> {
-  const result = await generateA2uiText(input, images);
-
-  return {
-    messages: parseAgentOutput(result.text),
-    model: result.model,
-    durationMs: result.durationMs,
-    mockFile: result.mockFile,
-  };
-}
+// [暂时停用] 非流式 A2UI 生成，仅 /api/generate 使用
+// export async function generateA2ui(
+//   input: string,
+//   images: string[] = [],
+// ): Promise<GenerateA2uiResult> {
+//   const result = await generateA2uiText(input, images);
+//
+//   return {
+//     messages: parseAgentOutput(result.text),
+//     model: result.model,
+//     durationMs: result.durationMs,
+//     mockFile: result.mockFile,
+//   };
+// }

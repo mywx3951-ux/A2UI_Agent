@@ -25,8 +25,9 @@ npm run dev:server
 3. `.env` 中：
 
 ```bash
-A2UI_AGENT_MODE=openai
 OPENAI_API_KEY=sk-xxxx
+OPENAI_MODEL=deepseek-chat
+OPENAI_BASE_URL=https://api.deepseek.com
 ```
 
 4. 自检：

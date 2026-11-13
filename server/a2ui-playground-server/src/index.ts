@@ -6,11 +6,11 @@ import Router from '@koa/router';
 import cors from '@koa/cors';
 import {
   chatWithModel,
-  generateA2ui,
   generateA2uiText,
   getAgentMode,
   streamChatWithModel,
-  streamHtmlWithModel,
+  // [暂时停用] HTML 生成接口，当前主流程只使用 A2UI JSON
+  // streamHtmlWithModel,
 } from './agent';
 import { AgentConfigError, parseAgentOutput } from './a2ui';
 import {
@@ -102,16 +102,16 @@ function readCurrentProtocol(body: Record<string, unknown>): string | undefined 
   return trimmed === '' ? undefined : trimmed;
 }
 
-/** 读取本轮目标组件 id */
-function readTargetComponentId(
-  body: Record<string, unknown>,
-): string | undefined {
-  const value = body.targetComponentId;
+/** 读取本轮目标组件 id 列表；兼容旧的单个 targetComponentId 字段 */
+function readTargetComponentIds(body: Record<string, unknown>): string[] {
+  const raw = body.targetComponentIds;
+  const values = Array.isArray(raw) ? raw : [body.targetComponentId];
 
-  if (typeof value !== 'string') return undefined;
-
-  const trimmed = value.trim();
-  return trimmed === '' ? undefined : trimmed;
+  return values
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item !== '')
+    .slice(0, 20);
 }
 
 /** 读取最近对话，最多保留 8 条 */
@@ -158,7 +158,10 @@ router.get('/health', (ctx) => {
   ctx.body = { status: 'ok', mode: getAgentMode() };
 });
 
-/** 非流式接口：返回完整的 A2UI 消息数组 */
+/*
+ * [暂时停用] 非流式 A2UI 生成接口。
+ * 当前 Playground 统一走 POST /api/agent 的 AG-UI SSE 流式链路，
+ * 该接口与 Mock 模式一起保留代码，后续需要时取消注释即可。
 router.post('/api/generate', async (ctx) => {
   let body: Record<string, unknown>;
 
@@ -198,6 +201,7 @@ router.post('/api/generate', async (ctx) => {
     console.error('[a2ui-server] /api/generate failed:', error);
   }
 });
+*/
 
 /** 最基础的模型对话接口：只验证 OpenAI 连通性，不生成 A2UI */
 router.post('/api/chat', async (ctx) => {
@@ -352,7 +356,7 @@ router.post('/api/agent', async (ctx) => {
   const images = readImages(body);
   const currentProtocol = readCurrentProtocol(body);
   const history = readHistory(body);
-  const targetComponentId = readTargetComponentId(body);
+  const targetComponentIds = readTargetComponentIds(body);
   const threadId =
     typeof body.threadId === 'string' && body.threadId.trim()
       ? body.threadId
@@ -397,7 +401,7 @@ router.post('/api/agent', async (ctx) => {
       const result = await generateA2uiText(input, images, {
         currentProtocol,
         history,
-        targetComponentId,
+        targetComponentIds,
       });
 
       // 先校验协议，避免把非法内容推给前端；再转成 JSONL 逐行推送
@@ -487,7 +491,10 @@ router.post('/api/agent', async (ctx) => {
   })();
 });
 
-/** 流式 HTML 生成：返回完整 HTML + 内联 CSS，供前端预览与复制 */
+/*
+ * [暂时停用] 流式 HTML 生成接口。
+ * 当前前端主流程只消费 A2UI JSON，HTML + CSS 模式保留代码供后续实验，
+ * 需要时取消注释并把 streamHtmlWithModel 重新加入顶部 import 即可。
 router.post('/api/html/stream', async (ctx) => {
   let body: Record<string, unknown>;
 
@@ -576,6 +583,7 @@ router.post('/api/html/stream', async (ctx) => {
     }
   })();
 });
+*/
 
 app.use(cors());
 app.use(router.routes()).use(router.allowedMethods());
