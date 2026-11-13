@@ -9,6 +9,11 @@ const MESSAGE_TYPES = [
 
 export type A2uiMessage = Record<string, unknown>;
 
+export interface ParseAgentOptions {
+  /** 增量更新模式：允许只返回部分消息，甚至空数组 */
+  partial?: boolean;
+}
+
 export class AgentConfigError extends Error {
   constructor(message: string) {
     super(message);
@@ -31,12 +36,17 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * 解析模型返回的 A2UI 协议。
  * 兼容纯 JSON 数组、{ messages: [...] } 包装以及 Markdown 代码块。
  */
-export function parseAgentOutput(content: string): A2uiMessage[] {
+export function parseAgentOutput(
+  content: string,
+  options: ParseAgentOptions = {},
+): A2uiMessage[] {
   const text = stripCodeFence(content);
   const parsed = parseJson(text);
   const messages = normalizeMessages(parsed);
 
   if (messages.length === 0) {
+    if (options.partial) return [];
+
     throw new AgentOutputError('Agent 输出的消息数组为空');
   }
 
@@ -47,12 +57,15 @@ export function parseAgentOutput(content: string): A2uiMessage[] {
     validated.push(message);
   });
 
-  if (!validated.some((message) => 'surfaceUpdate' in message)) {
-    throw new AgentOutputError('Agent 输出缺少 surfaceUpdate 消息');
-  }
+  // 全量生成必须包含结构定义和渲染入口；增量更新允许只返回变更消息
+  if (!options.partial) {
+    if (!validated.some((message) => 'surfaceUpdate' in message)) {
+      throw new AgentOutputError('Agent 输出缺少 surfaceUpdate 消息');
+    }
 
-  if (!validated.some((message) => 'beginRendering' in message)) {
-    throw new AgentOutputError('Agent 输出缺少 beginRendering 消息');
+    if (!validated.some((message) => 'beginRendering' in message)) {
+      throw new AgentOutputError('Agent 输出缺少 beginRendering 消息');
+    }
   }
 
   return validated;
@@ -70,30 +83,50 @@ function parseJson(text: string): unknown {
   try {
     return JSON.parse(text);
   } catch {
-    const arrayStart = text.indexOf('[');
-    const arrayEnd = text.lastIndexOf(']');
-
-    if (arrayStart !== -1 && arrayEnd > arrayStart) {
-      try {
-        return JSON.parse(text.slice(arrayStart, arrayEnd + 1));
-      } catch {
-        // 继续尝试对象提取
-      }
-    }
-
-    const objectStart = text.indexOf('{');
-    const objectEnd = text.lastIndexOf('}');
-
-    if (objectStart !== -1 && objectEnd > objectStart) {
-      try {
-        return JSON.parse(text.slice(objectStart, objectEnd + 1));
-      } catch {
-        // 交给下方统一报错
-      }
-    }
-
-    throw new AgentOutputError('Agent 返回的内容不是合法 JSON');
+    // 继续尝试 JSONL / 数组 / 对象提取
   }
+
+  // JSONL：每行一条 A2UI 消息
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+
+  if (lines.length > 1) {
+    try {
+      const values = lines.map((line) => JSON.parse(line));
+
+      if (values.every(isPlainObject)) {
+        return values;
+      }
+    } catch {
+      // 继续尝试数组/对象提取
+    }
+  }
+
+  const arrayStart = text.indexOf('[');
+  const arrayEnd = text.lastIndexOf(']');
+
+  if (arrayStart !== -1 && arrayEnd > arrayStart) {
+    try {
+      return JSON.parse(text.slice(arrayStart, arrayEnd + 1));
+    } catch {
+      // 继续尝试对象提取
+    }
+  }
+
+  const objectStart = text.indexOf('{');
+  const objectEnd = text.lastIndexOf('}');
+
+  if (objectStart !== -1 && objectEnd > objectStart) {
+    try {
+      return JSON.parse(text.slice(objectStart, objectEnd + 1));
+    } catch {
+      // 交给下方统一报错
+    }
+  }
+
+  throw new AgentOutputError('Agent 返回的内容不是合法 JSON');
 }
 
 function normalizeMessages(parsed: unknown): unknown[] {

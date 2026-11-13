@@ -10,6 +10,7 @@ import {
   generateA2uiText,
   getAgentMode,
   streamChatWithModel,
+  streamHtmlWithModel,
 } from './agent';
 import { AgentConfigError, parseAgentOutput } from './a2ui';
 import {
@@ -89,6 +90,56 @@ function readImages(body: Record<string, unknown>): string[] {
       (item): item is string => typeof item === 'string' && item.trim() !== '',
     )
     .slice(0, 4);
+}
+
+/** 读取当前页面协议，用于多轮增量更新 */
+function readCurrentProtocol(body: Record<string, unknown>): string | undefined {
+  const value = body.currentProtocol;
+
+  if (typeof value !== 'string') return undefined;
+
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+}
+
+/** 读取本轮目标组件 id */
+function readTargetComponentId(
+  body: Record<string, unknown>,
+): string | undefined {
+  const value = body.targetComponentId;
+
+  if (typeof value !== 'string') return undefined;
+
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+}
+
+/** 读取最近对话，最多保留 8 条 */
+function readHistory(
+  body: Record<string, unknown>,
+): Array<{ role: 'user' | 'assistant'; content: string }> {
+  const value = body.history;
+
+  if (!Array.isArray(value)) return [];
+
+  const history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+  for (const item of value) {
+    if (!isPlainObject(item)) continue;
+
+    const role = item.role;
+    const content = item.content;
+
+    if (
+      (role === 'user' || role === 'assistant') &&
+      typeof content === 'string' &&
+      content.trim() !== ''
+    ) {
+      history.push({ role, content: content.trim() });
+    }
+  }
+
+  return history.slice(-8);
 }
 
 function readPositiveInt(value: string | undefined, fallback: number): number {
@@ -299,6 +350,9 @@ router.post('/api/agent', async (ctx) => {
   }
 
   const images = readImages(body);
+  const currentProtocol = readCurrentProtocol(body);
+  const history = readHistory(body);
+  const targetComponentId = readTargetComponentId(body);
   const threadId =
     typeof body.threadId === 'string' && body.threadId.trim()
       ? body.threadId
@@ -340,21 +394,35 @@ router.post('/api/agent', async (ctx) => {
         timestamp: Date.now(),
       });
 
-      const result = await generateA2uiText(input, images);
+      const result = await generateA2uiText(input, images, {
+        currentProtocol,
+        history,
+        targetComponentId,
+      });
 
       // 先校验协议，避免把非法内容推给前端；再转成 JSONL 逐行推送
-      const messages = parseAgentOutput(result.text);
+      const messages = parseAgentOutput(result.text, {
+        partial: Boolean(currentProtocol),
+      });
       const jsonl = messages
         .map((message) => JSON.stringify(message))
         .join('\n');
 
-      const surfaceId = messages
-        .map(
-          (message) =>
-            (message.beginRendering as { surfaceId?: string } | undefined)
-              ?.surfaceId,
-        )
-        .find((id) => typeof id === 'string' && id !== '');
+      const surfaceId =
+        messages
+          .map(
+            (message) =>
+              (message.beginRendering as { surfaceId?: string } | undefined)
+                ?.surfaceId,
+          )
+          .find((id) => typeof id === 'string' && id !== '') ??
+        messages
+          .map(
+            (message) =>
+              (message.surfaceUpdate as { surfaceId?: string } | undefined)
+                ?.surfaceId,
+          )
+          .find((id) => typeof id === 'string' && id !== '');
 
       const messageId = randomUUID();
 
@@ -387,12 +455,17 @@ router.post('/api/agent', async (ctx) => {
       if (closed) return;
 
       // 协议推送完成后，再给出 assistant 的自然语言说明
+      const summary =
+        messages.length === 0
+          ? 'agent完成：未检测到需要变更的界面内容'
+          : `agent完成：${
+              currentProtocol ? '已更新界面' : '已生成界面'
+            }${surfaceId ? ` ${surfaceId}` : ''}，共 ${messages.length} 条协议消息`;
+
       send({
         type: 'TEXT_MESSAGE_CONTENT',
         messageId,
-        delta: `agent完成：已生成界面${
-          surfaceId ? ` ${surfaceId}` : ''
-        }，共 ${messages.length} 条协议消息`,
+        delta: summary,
         timestamp: Date.now(),
       });
       send({ type: 'TEXT_MESSAGE_END', messageId, timestamp: Date.now() });
@@ -408,6 +481,96 @@ router.post('/api/agent', async (ctx) => {
 
       send({ type: 'RUN_ERROR', message, timestamp: Date.now() });
       console.error('[a2ui-server] /api/agent failed:', error);
+    } finally {
+      stream.end();
+    }
+  })();
+});
+
+/** 流式 HTML 生成：返回完整 HTML + 内联 CSS，供前端预览与复制 */
+router.post('/api/html/stream', async (ctx) => {
+  let body: Record<string, unknown>;
+
+  try {
+    body = await readJsonBody(ctx.req);
+  } catch {
+    ctx.status = 400;
+    ctx.body = { error: { message: '请求体必须是合法的 JSON 对象' } };
+    return;
+  }
+
+  const input = readInput(body);
+
+  if (!input) {
+    ctx.status = 400;
+    ctx.body = { error: { message: 'input 或最后一条 user message 不能为空' } };
+    return;
+  }
+
+  const images = readImages(body);
+  const threadId = randomUUID();
+  const runId = randomUUID();
+  const messageId = randomUUID();
+  const stream = new PassThrough();
+  let closed = false;
+
+  ctx.status = 200;
+  ctx.set({
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  ctx.body = stream;
+
+  ctx.res.on('close', () => {
+    closed = true;
+  });
+
+  const send = (event: AguiEvent) => {
+    if (!closed) stream.write(toSseEvent(event));
+  };
+
+  void (async () => {
+    try {
+      send({ type: 'RUN_STARTED', threadId, runId, timestamp: Date.now() });
+      send({
+        type: 'STEP_STARTED',
+        stepName: 'generate_html',
+        timestamp: Date.now(),
+      });
+      send({
+        type: 'TEXT_MESSAGE_START',
+        messageId,
+        role: 'assistant',
+        timestamp: Date.now(),
+      });
+
+      for await (const delta of streamHtmlWithModel(input, images)) {
+        if (closed) return;
+
+        send({
+          type: 'TEXT_MESSAGE_CONTENT',
+          messageId,
+          delta,
+          timestamp: Date.now(),
+        });
+      }
+
+      if (closed) return;
+
+      send({ type: 'TEXT_MESSAGE_END', messageId, timestamp: Date.now() });
+      send({
+        type: 'STEP_FINISHED',
+        stepName: 'generate_html',
+        timestamp: Date.now(),
+      });
+      send({ type: 'RUN_FINISHED', threadId, runId, timestamp: Date.now() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '未知错误';
+
+      send({ type: 'RUN_ERROR', message, timestamp: Date.now() });
+      console.error('[a2ui-server] /api/html/stream failed:', error);
     } finally {
       stream.end();
     }

@@ -32,3 +32,14 @@
   background: currentColor;
   animation: a2ui-chat-cursor-blink 1s step-end infinite;
 }
+
+/* 预览区组件选中态 */
+.a2ui-preview [data-a2ui-id] {
+  cursor: pointer;
+}
+
+.a2ui-preview [data-a2ui-selected='true'] {
+  outline: 2px solid #1677ff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}

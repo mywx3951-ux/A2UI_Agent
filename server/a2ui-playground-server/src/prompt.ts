@@ -46,3 +46,9 @@ function renderPrompt(source: string): string {
 }
 
 export const SYSTEM_PROMPT = renderPrompt(template);
+
+/** HTML 页面生成提示词：docs/html-agent-prompt.md */
+export const HTML_SYSTEM_PROMPT = readFileSync(
+  resolve(repoRoot, 'docs/html-agent-prompt.md'),
+  'utf8',
+).trim();

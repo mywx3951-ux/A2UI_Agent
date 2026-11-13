@@ -1,5 +1,5 @@
 {
-  "$comment": "由 @a2ui/react 的 renderMap 反推生成：只保留当前 renderer 实际消费的字段。协议基线为 A2UI v0.8，并扩展了 Button.action.localDataModelUpdate 本地更新能力。",
+  "$comment": "由 @a2ui/react 的 renderMap 反推生成：只保留当前 renderer 实际消费的字段。协议基线为 A2UI v0.8，并扩展了 Button.action.localDataModelUpdate 本地更新能力与所有组件的 style 样式覆盖能力。",
   "$defs": {
     "dataModelEntry": {
       "type": "object",
@@ -24,7 +24,14 @@
           }
         }
       },
-      "required": ["key"]
+      "required": [
+        "key"
+      ]
+    },
+    "style": {
+      "type": "object",
+      "description": "Optional per-component inline style. Keys are camelCase CSS property names (React style syntax); numbers are treated as px for length properties. Merged on top of the component built-in styles, e.g. { \"backgroundColor\": \"#1677ff\", \"fontSize\": 18, \"padding\": \"8px 16px\", \"borderRadius\": 10 }.",
+      "additionalProperties": true
     }
   },
   "version": "0.8",
@@ -49,10 +56,23 @@
         "usageHint": {
           "type": "string",
           "description": "A hint for the base text style. One of: h1, h2, h3, h4, h5, caption, body.",
-          "enum": ["h1", "h2", "h3", "h4", "h5", "caption", "body"]
+          "enum": [
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "caption",
+            "body"
+          ]
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["text"]
+      "required": [
+        "text"
+      ]
     },
     "Image": {
       "type": "object",
@@ -87,15 +107,33 @@
         "fit": {
           "type": "string",
           "description": "Specifies how the image should be resized to fit its container. This corresponds to the CSS 'object-fit' property.",
-          "enum": ["contain", "cover", "fill", "none", "scale-down"]
+          "enum": [
+            "contain",
+            "cover",
+            "fill",
+            "none",
+            "scale-down"
+          ]
         },
         "usageHint": {
           "type": "string",
           "description": "A hint for the image size and style.",
-          "enum": ["icon", "avatar", "smallFeature", "mediumFeature", "largeFeature", "header"]
+          "enum": [
+            "icon",
+            "avatar",
+            "smallFeature",
+            "mediumFeature",
+            "largeFeature",
+            "header"
+          ]
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["url"]
+      "required": [
+        "url"
+      ]
     },
     "Icon": {
       "type": "object",
@@ -163,9 +201,14 @@
               "type": "string"
             }
           }
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["name"]
+      "required": [
+        "name"
+      ]
     },
     "Video": {
       "type": "object",
@@ -183,9 +226,14 @@
               "type": "string"
             }
           }
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["url"]
+      "required": [
+        "url"
+      ]
     },
     "AudioPlayer": {
       "type": "object",
@@ -216,9 +264,14 @@
               "type": "string"
             }
           }
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["url"]
+      "required": [
+        "url"
+      ]
     },
     "Row": {
       "type": "object",
@@ -247,22 +300,42 @@
                   "type": "string"
                 }
               },
-              "required": ["componentId", "dataBinding"]
+              "required": [
+                "componentId",
+                "dataBinding"
+              ]
             }
           }
         },
         "distribution": {
           "type": "string",
           "description": "Defines the arrangement of children along the main axis (horizontally). This corresponds to the CSS 'justify-content' property.",
-          "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly"
+          ]
         },
         "alignment": {
           "type": "string",
           "description": "Defines the alignment of children along the cross axis (vertically). This corresponds to the CSS 'align-items' property.",
-          "enum": ["start", "center", "end", "stretch"]
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ]
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["children"]
+      "required": [
+        "children"
+      ]
     },
     "Column": {
       "type": "object",
@@ -291,22 +364,42 @@
                   "type": "string"
                 }
               },
-              "required": ["componentId", "dataBinding"]
+              "required": [
+                "componentId",
+                "dataBinding"
+              ]
             }
           }
         },
         "distribution": {
           "type": "string",
           "description": "Defines the arrangement of children along the main axis (vertically). This corresponds to the CSS 'justify-content' property.",
-          "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly"
+          ]
         },
         "alignment": {
           "type": "string",
           "description": "Defines the alignment of children along the cross axis (horizontally). This corresponds to the CSS 'align-items' property.",
-          "enum": ["start", "center", "end", "stretch"]
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ]
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["children"]
+      "required": [
+        "children"
+      ]
     },
     "List": {
       "type": "object",
@@ -335,22 +428,38 @@
                   "type": "string"
                 }
               },
-              "required": ["componentId", "dataBinding"]
+              "required": [
+                "componentId",
+                "dataBinding"
+              ]
             }
           }
         },
         "direction": {
           "type": "string",
           "description": "The direction in which the list items are laid out.",
-          "enum": ["vertical", "horizontal"]
+          "enum": [
+            "vertical",
+            "horizontal"
+          ]
         },
         "alignment": {
           "type": "string",
           "description": "Defines the alignment of children along the cross axis.",
-          "enum": ["start", "center", "end", "stretch"]
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ]
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["children"]
+      "required": [
+        "children"
+      ]
     },
     "Card": {
       "type": "object",
@@ -359,9 +468,14 @@
         "child": {
           "type": "string",
           "description": "The ID of the component to be rendered inside the card."
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["child"]
+      "required": [
+        "child"
+      ]
     },
     "Tabs": {
       "type": "object",
@@ -391,11 +505,19 @@
                 "type": "string"
               }
             },
-            "required": ["title", "child"]
+            "required": [
+              "title",
+              "child"
+            ]
           }
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["tabItems"]
+      "required": [
+        "tabItems"
+      ]
     },
     "Divider": {
       "type": "object",
@@ -404,7 +526,13 @@
         "axis": {
           "type": "string",
           "description": "The orientation of the divider.",
-          "enum": ["horizontal", "vertical"]
+          "enum": [
+            "horizontal",
+            "vertical"
+          ]
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       }
     },
@@ -419,9 +547,15 @@
         "contentChild": {
           "type": "string",
           "description": "The ID of the component to be displayed inside the modal."
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["entryPointChild", "contentChild"]
+      "required": [
+        "entryPointChild",
+        "contentChild"
+      ]
     },
     "Button": {
       "type": "object",
@@ -463,13 +597,24 @@
                   }
                 }
               },
-              "required": ["surfaceId", "contents"]
+              "required": [
+                "surfaceId",
+                "contents"
+              ]
             }
           },
-          "required": ["name"]
+          "required": [
+            "name"
+          ]
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["child", "action"]
+      "required": [
+        "child",
+        "action"
+      ]
     },
     "CheckBox": {
       "type": "object",
@@ -500,9 +645,15 @@
               "type": "string"
             }
           }
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["label", "value"]
+      "required": [
+        "label",
+        "value"
+      ]
     },
     "TextField": {
       "type": "object",
@@ -537,14 +688,25 @@
         "textFieldType": {
           "type": "string",
           "description": "The type of input field to display.",
-          "enum": ["date", "longText", "number", "shortText", "obscured"]
+          "enum": [
+            "date",
+            "longText",
+            "number",
+            "shortText",
+            "obscured"
+          ]
         },
         "validationRegexp": {
           "type": "string",
           "description": "A regular expression used for client-side validation of the input. This renderer only uses it for visual feedback."
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["label"]
+      "required": [
+        "label"
+      ]
     },
     "DateTimeInput": {
       "type": "object",
@@ -570,14 +732,22 @@
         "enableTime": {
           "type": "boolean",
           "description": "If true, allows the user to select a time."
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["value"]
+      "required": [
+        "value"
+      ]
     },
     "MultipleChoice": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["selections", "options"],
+      "required": [
+        "selections",
+        "options"
+      ],
       "properties": {
         "selections": {
           "type": "object",
@@ -620,13 +790,22 @@
                 "description": "The value to be associated with this option when selected."
               }
             },
-            "required": ["label", "value"]
+            "required": [
+              "label",
+              "value"
+            ]
           }
         },
         "variant": {
           "type": "string",
           "description": "The display style of the component.",
-          "enum": ["checkbox", "chips"]
+          "enum": [
+            "checkbox",
+            "chips"
+          ]
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       }
     },
@@ -667,9 +846,14 @@
         "maxValue": {
           "type": "number",
           "description": "The maximum value of the slider."
+        },
+        "style": {
+          "$ref": "#/$defs/style"
         }
       },
-      "required": ["value"]
+      "required": [
+        "value"
+      ]
     }
   },
   "x-renderer": {
@@ -701,7 +885,7 @@
       "Button.action.localDataModelUpdate 在本地写入当前 surface 的 dataModelMap；action.context 未解析，server action 仅保留 data-action、不派发 userAction。",
       "MultipleChoice.maxAllowedSelections 与 filterable 未实现。",
       "Tabs 与 Modal 为只读展示，无切换/弹窗交互。",
-      "styles（font / primaryColor）未接入渲染。",
+      "styles 仅支持 font 与 primaryColor；组件级颜色、间距、圆角等需扩展 Catalog。",
       "组件节点尚未向 DOM 输出稳定 id，暂不支持按元素定位。"
     ]
   }

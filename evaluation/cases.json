@@ -1,0 +1,160 @@
+[
+  {
+    "id": "00-smoke",
+    "stage": 0,
+    "title": "连通性与流式输出",
+    "input": "生成一个只包含一行文字的页面，文字内容是「Hello A2UI」。",
+    "expectComponents": ["Text"],
+    "manual": ["观察 SSE 分块是否持续到达", "JSON 面板是否流式增长"]
+  },
+  {
+    "id": "01-single-text",
+    "stage": 1,
+    "title": "单组件与根节点",
+    "input": "生成一个只有一行标题的页面，标题是「用户中心」，使用 h3 样式。",
+    "expectComponents": ["Text"],
+    "manual": ["预览是否显示标题「用户中心」"]
+  },
+  {
+    "id": "02-layout",
+    "stage": 2,
+    "title": "布局组件",
+    "input": "生成一个横向排列的顶部导航，左边是标题「我的应用」，右边是两个按钮「登录」和「注册」。",
+    "expectComponents": ["Row", "Text", "Button"],
+    "manual": ["标题与按钮是否横向排列"]
+  },
+  {
+    "id": "03-data-binding",
+    "stage": 3,
+    "title": "数据绑定",
+    "input": "生成一个用户信息卡片，显示姓名、城市和会员状态。数据请通过 dataModelUpdate 提供，组件使用 path 绑定。",
+    "expectComponents": ["Card", "Text"],
+    "manual": ["协议中是否出现 dataModelUpdate", "Text 是否使用 path 而不是硬编码"]
+  },
+  {
+    "id": "04-list-template",
+    "stage": 4,
+    "title": "动态列表模板",
+    "input": "生成一个商品列表，数据放在 /products 下，至少包含三件商品，每件显示名称和价格。列表请使用 children.template。",
+    "expectComponents": ["List", "Text"],
+    "manual": ["是否使用 children.template", "是否至少有 3 条商品数据"]
+  },
+  {
+    "id": "05-form",
+    "stage": 5,
+    "title": "表单类组件",
+    "input": "生成一个注册表单，包含用户名输入框、密码输入框、同意协议复选框、一个选择器和一个提交按钮。",
+    "expectComponents": ["TextField", "CheckBox", "Button"],
+    "manual": ["是否包含 MultipleChoice 或 Slider", "表单结构是否合理"]
+  },
+  {
+    "id": "06-theme",
+    "stage": 6,
+    "title": "主题样式",
+    "input": "生成一个登录卡片，主色使用 #e8590c，字体使用 Georgia，包含用户名输入框和登录按钮。",
+    "expectComponents": ["Card", "Button"],
+    "expectPrimaryColor": "#e8590c",
+    "expectFont": "Georgia",
+    "manual": ["主按钮颜色是否为 #e8590c", "文字字体是否包含 Georgia"]
+  },
+  {
+    "id": "07-complex-page",
+    "stage": 7,
+    "title": "复杂页面",
+    "input": "生成一个天气页面，包含当前城市、温度、天气状况、未来三天预报和刷新按钮。",
+    "expectComponents": ["Text", "Card", "Button"],
+    "manual": ["信息层级是否清晰", "是否包含未来三天预报"]
+  },
+  {
+    "id": "08-image",
+    "stage": 8,
+    "title": "图片输入（多模态）",
+    "input": "请参考这张图片还原一个页面，保持布局和主要文案。",
+    "expectComponents": [],
+    "manual": ["需要手动上传图片", "检查布局和文案是否与图片一致"]
+  },
+  {
+    "id": "09-multi-turn-update",
+    "stage": 9,
+    "title": "多轮增量更新",
+    "input": "在刚才的天气页面上，把刷新按钮改成蓝色，并增加一个「湿度」字段。",
+    "expectComponents": [],
+    "manual": [
+      "先完成 07-complex-page",
+      "第二次请求应只返回变更消息",
+      "原页面内容应保留",
+      "聊天区显示已更新界面"
+    ]
+  },
+  {
+    "id": "10-media",
+    "stage": 10,
+    "title": "媒体类组件",
+    "input": "生成一个媒体展示页面，包含一张封面图、一个播放图标、一个视频播放器和一个音频播放器，每部分配一个标题。",
+    "expectComponents": ["Image", "Icon", "Video", "AudioPlayer", "Text"],
+    "manual": ["检查 Image / Icon / Video / AudioPlayer 是否都有标题"]
+  },
+  {
+    "id": "11-containers",
+    "stage": 11,
+    "title": "容器类组件",
+    "input": "生成一个包含三个标签页的页面，标签分别是「概览」「详情」「评论」，每个标签页里有对应文字；在概览里加一条分隔线；再增加一个模态框区域，内容显示「确认操作」。",
+    "expectComponents": ["Tabs", "Divider", "Modal", "Text"],
+    "manual": ["Tabs / Divider / Modal 当前均为只读展示，只检查结构"]
+  },
+  {
+    "id": "12-datetime",
+    "stage": 12,
+    "title": "日期时间组件",
+    "input": "生成一个预约表单，包含日期选择、时间选择和日期时间选择三个控件，以及一个提交按钮。",
+    "expectComponents": ["DateTimeInput", "Button"],
+    "manual": ["检查 enableDate / enableTime 组合是否合理"]
+  },
+  {
+    "id": "13-local-action-openlink",
+    "stage": 13,
+    "title": "本地 Action 与 OpenLink",
+    "input": "生成一个演示卡片，包含一行文字「初始文案」、一个按钮「修改文案」和一个链接「打开 A2UI 官网」。按钮点击后把文字改成「已更新」，链接指向 https://a2ui.org。",
+    "expectComponents": ["Button", "OpenLink", "Text"],
+    "manual": [
+      "协议中包含 Button.action.localDataModelUpdate",
+      "点击按钮后文案变为「已更新」",
+      "链接在新标签页打开"
+    ]
+  },
+  {
+    "id": "14-all-components",
+    "stage": 14,
+    "title": "全组件总览",
+    "input": "生成一个组件总览页面，依次展示文本、图片、图标、视频、音频、行、列、列表、卡片、标签页、分隔线、模态框、按钮、复选框、输入框、日期时间、多选和滑块，每个组件配一个标题。",
+    "expectComponents": [],
+    "minDistinctComponents": 14,
+    "manual": ["统计实际覆盖的组件种类", "记录未覆盖的组件"]
+  },
+  {
+    "id": "15-component-props",
+    "stage": 15,
+    "title": "已定义属性约束",
+    "input": "生成一个横向排列的卡片列表，图片使用 avatar 尺寸并 cover 填充，标题使用 h2，列表水平排列，滑块范围 0-10。",
+    "expectComponents": ["Row", "List", "Image", "Text", "Slider"],
+    "manual": [
+      "Image.usageHint 是否为 avatar",
+      "Image.fit 是否为 cover",
+      "Text.usageHint 是否为 h2",
+      "List.direction 是否为 horizontal",
+      "Slider 的 min / max 是否为 0 / 10"
+    ]
+  },
+  {
+    "id": "16-icons",
+    "stage": 16,
+    "title": "图标查询与 Icon 组件",
+    "input": "生成一个底部导航栏，包含首页、搜索、购物车、个人中心四个入口，每个入口需要文字和图标。",
+    "expectComponents": ["Row", "Text", "Icon"],
+    "manual": [
+      "是否触发了 list_a2ui_icons 工具",
+      "四个图标语义是否匹配",
+      "Icon.name 是否都在 Catalog 中"
+    ]
+  }
+]

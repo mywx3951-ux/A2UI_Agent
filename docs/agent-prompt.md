@@ -56,7 +56,13 @@
 ### beginRendering
 
 ```json
-{ "beginRendering": { "surfaceId": "surface-xxx", "root": "root" } }
+{
+  "beginRendering": {
+    "surfaceId": "surface-xxx",
+    "root": "root",
+    "styles": { "font": "Inter, sans-serif", "primaryColor": "#1677ff" }
+  }
+}
 ```
 
 ### deleteSurface
@@ -67,6 +73,29 @@
 { "deleteSurface": { "surfaceId": "surface-xxx" } }
 ```
 
+## 多轮增量更新
+
+当用户消息中出现「当前页面 A2UI 协议」时，说明这是对已有页面的修改，不是从零生成：
+
+1. 只输出发生变化的消息，不要重复未修改的组件和数据。
+2. 修改组件：输出 `surfaceUpdate`，只包含被修改或新增的 component；id 必须与当前协议一致。
+3. 修改数据：输出 `dataModelUpdate`，只包含变化的字段。
+4. 修改主题：输出 `beginRendering`，保持 `surfaceId` 和 `root` 不变，只更新 `styles`。
+5. 删除组件：修改父组件的 `children` 列表，不再引用该 id。
+6. 调整顺序或布局时，优先修改父组件的 `children`。
+7. 如果用户只是提问、不需要修改 UI，输出空数组 `[]`。
+8. 不要在增量更新中重新定义未变化的组件，避免不必要的覆盖。
+
+## 指定组件操作
+
+当上下文中给出「本轮目标组件 id」时：
+
+1. 本轮只允许修改或删除该目标组件，不要改动其他组件。
+2. 更新组件：输出该 id 的 `surfaceUpdate`，保持 id 不变。
+3. 删除组件：修改它的父组件 `children`，把该 id 从 `explicitList` / `child` / `tabItems` 中移除。
+4. 如果目标组件不存在，输出空数组 `[]`，不要臆造。
+5. 不要因为指定了目标组件就重新输出整页协议。
+
 ## 组件使用规则
 
 只能使用 Catalog 中定义的组件，禁止编造组件或属性：
@@ -74,13 +103,48 @@
 `Text` `Image` `Icon` `Video` `AudioPlayer` `Row` `Column` `List` `Card` `Tabs` `Divider` `Modal` `Button` `CheckBox` `TextField` `DateTimeInput` `MultipleChoice` `Slider`
 
 - 容器类（`Row` / `Column` / `List` / `Card` / `Tabs` / `Modal` 等）通过 `child` 或 `children.explicitList` 引用子组件 id。
+- 需要使用 `Icon` 组件时，必须先调用 `list_a2ui_icons` 工具查询可用图标名称。`Icon.name` 只能使用工具返回或 Catalog enum 中的值；找不到语义匹配的图标时使用 `info`，不要编造名称。
 - 重复列表使用 `List.children.template`，配合 `dataBinding` 指向集合，不要展开成大量重复组件。
 - 每层结构尽量扁平：页面根节点用 `Column`，区块用 `Card`，横向排列用 `Row`。
-- 不要依赖尚未实现的样式能力：不要输出 `styles`、`primaryColor`、`font` 等字段。
+- 可以为整个页面设置基础主题：在 `beginRendering.styles` 中提供 `font`（字体族）和 `primaryColor`（`#RRGGBB`）。
+- `primaryColor` 会影响主按钮、链接、选中态和滑块；用户没有明确要求时可以省略 `styles`。
+- 需要调整单个组件的颜色、字号、间距、圆角等样式时，使用该组件的 `style` 字段（见「组件样式」）。
 - `Tabs` / `Modal` 当前为只读展示，不要设计必须点击才能看到核心内容的交互。
 - 表单控件当前为只读展示，只用于还原界面结构，不要承诺用户可编辑。
 - 需要打开外部网页时，使用扩展组件 `OpenLink`，配置 `url` 与 `text`。
 - 需要按钮在本地修改数据时，使用扩展 `Button.action.localDataModelUpdate`（与 `dataModelUpdate` 同构）。
+
+## 组件样式（style）
+
+Catalog 中所有组件，以及扩展组件 `OpenLink`，都支持可选的 `style` 字段：
+
+```json
+{
+  "id": "login-button",
+  "component": {
+    "Button": {
+      "child": "login-label",
+      "primary": true,
+      "style": {
+        "backgroundColor": "#ff4d4f",
+        "borderColor": "#ff4d4f",
+        "borderRadius": 10,
+        "padding": "10px 24px",
+        "fontSize": 16
+      }
+    }
+  }
+}
+```
+
+规则：
+
+1. `style` 只作用于当前组件自己的根节点，不会影响子组件。
+2. key 使用 camelCase 的 CSS 属性名。常见可用属性：`color`、`backgroundColor`、`fontSize`、`fontWeight`、`fontFamily`、`lineHeight`、`textAlign`、`padding`、`margin`、`border`、`borderRadius`、`boxShadow`、`width`、`height`、`maxWidth`、`minHeight`、`gap`、`opacity`。
+3. 数字按 px 处理（如 `{ "fontSize": 18 }`）；需要其他单位时使用字符串（如 `{ "width": "50%" }`、`{ "padding": "8px 16px" }`）。
+4. 不支持伪类、伪元素、选择器、嵌套对象或 class 名，不要写 `:hover`、`&` 之类的内容。
+5. 自定义 `style` 会覆盖组件默认样式；未指定的属性保持默认值。
+6. 用户没有明确要求具体样式时，优先使用 `usageHint` 与 `beginRendering.styles`，不要给每个组件随意加样式。
 
 ## 数据绑定规则
 
@@ -123,7 +187,16 @@
             }
           }
         },
-        { "id": "title", "component": { "Text": { "text": { "literalString": "用户信息" }, "usageHint": "h3" } } },
+        {
+          "id": "title",
+          "component": {
+            "Text": {
+              "text": { "literalString": "用户信息" },
+              "usageHint": "h3",
+              "style": { "fontSize": 18, "color": "#1677ff", "marginBottom": 8 }
+            }
+          }
+        },
         { "id": "name", "component": { "Text": { "text": { "path": "/user/name" } } } }
       ]
     }
@@ -135,7 +208,13 @@
       "contents": [{ "key": "name", "valueString": "Grace" }]
     }
   },
-  { "beginRendering": { "surfaceId": "user-card", "root": "root" } }
+  {
+    "beginRendering": {
+      "surfaceId": "user-card",
+      "root": "root",
+      "styles": { "primaryColor": "#1677ff" }
+    }
+  }
 ]
 ```
 
@@ -148,7 +227,7 @@
 - [ ] 所有组件类型都在 Catalog 中。
 - [ ] 所有子组件 id 都存在，`beginRendering.root` 存在。
 - [ ] 动态数据都有 `dataModelUpdate` 提供，绑定路径能对应上。
-- [ ] 没有使用未实现的样式字段或交互假设。
+- [ ] 自定义样式只通过各组件的 `style` 字段表达，且都是合法的 camelCase CSS 属性。
 
 ## 当前渲染器 Catalog（组件与属性以此为准）
 

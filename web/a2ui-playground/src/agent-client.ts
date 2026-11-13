@@ -41,6 +41,12 @@ export interface StreamAgentOptions {
   onMessage?: (text: string) => void;
   /** 多模态输入：data URL 或 http(s) 图片地址 */
   images?: string[];
+  /** 当前页面的完整 A2UI 协议，用于多轮增量更新 */
+  currentProtocol?: string;
+  /** 最近几轮对话 */
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  /** 本轮要修改的目标组件 id */
+  targetComponentId?: string;
 }
 
 export interface StreamAgentResult {
@@ -107,6 +113,9 @@ export async function streamAgent(
     body: JSON.stringify({
       input,
       images: options.images?.length ? options.images : undefined,
+      currentProtocol: options.currentProtocol,
+      history: options.history?.length ? options.history : undefined,
+      targetComponentId: options.targetComponentId,
     }),
   });
 
@@ -207,6 +216,59 @@ export async function streamChat(
   if (runError) throw new Error(runError);
 
   return { reply };
+}
+
+export interface StreamHtmlOptions {
+  /** 多模态输入：data URL 或 http(s) 图片地址 */
+  images?: string[];
+  /** 收到一段 HTML 代码时触发 */
+  onDelta?: (delta: string) => void;
+}
+
+/** 调用 POST /api/html/stream，逐段接收标准 HTML + CSS */
+export async function streamHtml(
+  input: string,
+  options: StreamHtmlOptions = {},
+): Promise<{ html: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/html/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    },
+    body: JSON.stringify({
+      input,
+      images: options.images?.length ? options.images : undefined,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  let html = '';
+  let runError: string | null = null;
+
+  await readSseFrames(response, (event) => {
+    if (
+      event.type === 'TEXT_MESSAGE_CONTENT' &&
+      typeof event.delta === 'string'
+    ) {
+      html += event.delta;
+      options.onDelta?.(event.delta);
+    }
+
+    if (event.type === 'RUN_ERROR') {
+      runError =
+        typeof event.message === 'string'
+          ? event.message
+          : '服务端返回 RUN_ERROR';
+    }
+  });
+
+  if (runError) throw new Error(runError);
+
+  return { html };
 }
 
 /** 读取 SSE 响应体，每解析出一个 data 帧就回调一次 */

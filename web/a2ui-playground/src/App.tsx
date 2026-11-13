@@ -3,6 +3,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type MouseEvent,
 } from 'react';
 import { Button, Empty, Input, Switch, Tag, Typography } from 'antd';
 import {
@@ -10,9 +11,10 @@ import {
   init,
   JsonlBuffer,
   renderTreeFromStore,
+  type A2uiParser,
   type A2uiTreeNode,
 } from '@a2ui/core';
-import { renderMap } from '@a2ui/react';
+import { A2uiSurface, renderMap } from '@a2ui/react';
 import { API_BASE_URL, streamAgent, streamChat } from './agent-client';
 
 interface ChatMessage {
@@ -43,10 +45,96 @@ function useA2uiStore(store: ReturnType<typeof init>) {
   return useSyncExternalStore(store.subscribe, store.getState, store.getState);
 }
 
+type ProtocolMessage = Record<string, unknown>;
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getMessageSurfaceId(message: ProtocolMessage): string | undefined {
+  for (const key of ['surfaceUpdate', 'beginRendering', 'deleteSurface']) {
+    const payload = message[key];
+
+    if (isPlainRecord(payload) && typeof payload.surfaceId === 'string') {
+      return payload.surfaceId;
+    }
+  }
+
+  return undefined;
+}
+
+/** 把增量补丁合并进当前完整协议，供下一轮作为上下文 */
+function mergeProtocolMessage(
+  messages: ProtocolMessage[],
+  incoming: ProtocolMessage,
+): void {
+  const surfaceId = getMessageSurfaceId(incoming);
+
+  if (isPlainRecord(incoming.surfaceUpdate)) {
+    const update = incoming.surfaceUpdate;
+    const components = Array.isArray(update.components) ? update.components : [];
+    const existing = messages.find(
+      (message) =>
+        isPlainRecord(message.surfaceUpdate) &&
+        message.surfaceUpdate.surfaceId === surfaceId,
+    );
+
+    if (!existing) {
+      messages.push(incoming);
+      return;
+    }
+
+    const existingUpdate = existing.surfaceUpdate as Record<string, unknown>;
+    const merged = Array.isArray(existingUpdate.components)
+      ? [...existingUpdate.components]
+      : [];
+
+    for (const component of components) {
+      if (!isPlainRecord(component) || typeof component.id !== 'string') {
+        merged.push(component);
+        continue;
+      }
+
+      const index = merged.findIndex(
+        (item) => isPlainRecord(item) && item.id === component.id,
+      );
+
+      if (index === -1) merged.push(component);
+      else merged[index] = component;
+    }
+
+    existingUpdate.components = merged;
+    return;
+  }
+
+  if (isPlainRecord(incoming.beginRendering)) {
+    const index = messages.findIndex(
+      (message) =>
+        isPlainRecord(message.beginRendering) &&
+        message.beginRendering.surfaceId === surfaceId,
+    );
+
+    if (index === -1) messages.push(incoming);
+    else messages[index] = incoming;
+    return;
+  }
+
+  if (isPlainRecord(incoming.deleteSurface)) {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (getMessageSurfaceId(messages[index]) === surfaceId) {
+        messages.splice(index, 1);
+      }
+    }
+    return;
+  }
+
+  messages.push(incoming);
+}
+
 const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome',
   role: 'assistant',
-  text: '你好，我是 A2UI Agent。在左侧描述你想要的界面，我会调用服务端生成 A2UI 协议并实时渲染到右侧。',
+  text: '你好，我是 A2UI Agent。在左侧描述你想要的页面，服务端会返回 A2UI JSON，右侧实时渲染并展示协议代码。',
   status: 'done',
 };
 
@@ -63,11 +151,20 @@ export default function App() {
   const [chatOnly, setChatOnly] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedChars, setStreamedChars] = useState(0);
-  const [protocolMessages, setProtocolMessages] = useState(0);
+  const [protocolCount, setProtocolCount] = useState(0);
+  const [protocolJson, setProtocolJson] = useState('');
+  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(
+    null,
+  );
+  const [showJson, setShowJson] = useState(true);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
+  const codeRef = useRef<HTMLPreElement | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const parserRef = useRef<A2uiParser | null>(null);
+  const protocolRef = useRef<ProtocolMessage[]>([]);
 
   // 新消息或流式进度更新时，聊天列表自动滚到底部
   useEffect(() => {
@@ -77,6 +174,56 @@ export default function App() {
       list.scrollTop = list.scrollHeight;
     }
   }, [messages]);
+
+  // JSON 代码面板在生成过程中自动跟随到底部
+  useEffect(() => {
+    const code = codeRef.current;
+
+    if (!code || !isStreaming) return;
+
+    const nearBottom =
+      code.scrollHeight - code.scrollTop - code.clientHeight < 80;
+
+    if (nearBottom) {
+      code.scrollTop = code.scrollHeight;
+    }
+  }, [protocolJson, isStreaming]);
+
+  // 高亮当前选中的组件
+  useEffect(() => {
+    const container = previewRef.current;
+
+    if (!container) return;
+
+    container
+      .querySelectorAll('[data-a2ui-selected="true"]')
+      .forEach((element) => element.removeAttribute('data-a2ui-selected'));
+
+    if (!selectedComponentId) return;
+
+    const selector = `[data-a2ui-id="${selectedComponentId.replace(
+      /"/g,
+      '\\"',
+    )}"]`;
+    const element = container.querySelector(selector);
+
+    element?.setAttribute('data-a2ui-selected', 'true');
+  }, [selectedComponentId, renderedTree]);
+
+  /** 点击预览中的组件：记录 Component ID */
+  const handlePreviewClick = (event: MouseEvent<HTMLDivElement>) => {
+    const target = (event.target as HTMLElement).closest('[data-a2ui-id]');
+
+    if (!target) return;
+
+    const id = target.getAttribute('data-a2ui-id');
+
+    if (!id) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedComponentId(id);
+  };
 
   const updateMessage = (id: string, patch: Partial<ChatMessage>) => {
     setMessages((previous) =>
@@ -129,7 +276,7 @@ export default function App() {
     renderTreeFromStore(store);
   };
 
-  /** 仅测试模型对话：不走 A2UI 解析与渲染 */
+  /** 仅测试模型对话：不走 A2UI 生成 */
   const sendChat = async (content: string) => {
     const userMessageId = nextMessageId('user');
     const assistantMessageId = nextMessageId('assistant');
@@ -183,65 +330,83 @@ export default function App() {
     }
   };
 
-  const send = async () => {
-    const content = input.trim();
-
-    if (!content || isStreaming) return;
-
-    if (chatOnly) {
-      await sendChat(content);
-      return;
-    }
-
+  /** 请求 A2UI Agent，流式解析协议并渲染 */
+  const sendAgent = async (content: string) => {
     const userMessageId = nextMessageId('user');
     const assistantMessageId = nextMessageId('assistant');
     const pendingImages = images;
+    const targetComponentId = selectedComponentId ?? undefined;
+    const isUpdate =
+      protocolRef.current.length > 0 && parserRef.current !== null;
+    const currentProtocol = isUpdate
+      ? JSON.stringify(protocolRef.current)
+      : undefined;
+    const history = messages
+      .filter((message) => message.id !== 'welcome' && message.status !== 'error')
+      .slice(-6)
+      .map((message) => ({ role: message.role, content: message.text }));
 
     setInput('');
     setImages([]);
+    setSelectedComponentId(null);
     setFeedback(null);
     setStreamedChars(0);
-    setProtocolMessages(0);
     setIsStreaming(true);
+
+    if (!isUpdate) {
+      setProtocolCount(0);
+      setProtocolJson('');
+      resetRender();
+      protocolRef.current = [];
+      parserRef.current = null;
+    }
+
     setMessages((previous) => [
       ...previous,
       {
         id: userMessageId,
         role: 'user',
-        text: content,
+        text: targetComponentId
+          ? `${content}\n\n[目标组件: ${targetComponentId}]`
+          : content,
         status: 'done',
         images: pendingImages.length > 0 ? pendingImages : undefined,
       },
       {
         id: assistantMessageId,
         role: 'assistant',
-        text: '正在请求服务端…',
+        text: isUpdate ? '正在更新页面…' : '正在请求服务端…',
         status: 'streaming',
       },
     ]);
 
-    resetRender();
-
     // 数据模型统一由 Store 持有：Parser 解析时写入，渲染时读取
-    const parser = createParser(
-      renderMap,
-      store.getState().addError,
-      store.getState().markHydrateNodeMounted,
-      {
-        getDataModel: (surfaceId) => store.getState().getDataModel(surfaceId),
-        setDataModel: (surfaceId, model) =>
-          store.getState().setDataModel(surfaceId, model),
-        removeDataModel: (surfaceId) =>
-          store.getState().removeDataModel(surfaceId),
-        updateModel: (surfaceId, path, value) =>
-          store.getState().updateModel(surfaceId, path, value),
-      },
-    );
+    let parser: A2uiParser;
+
+    if (isUpdate && parserRef.current) {
+      parser = parserRef.current;
+    } else {
+      parser = createParser(
+        renderMap,
+        store.getState().addError,
+        store.getState().markHydrateNodeMounted,
+        {
+          getDataModel: (surfaceId) => store.getState().getDataModel(surfaceId),
+          setDataModel: (surfaceId, model) =>
+            store.getState().setDataModel(surfaceId, model),
+          removeDataModel: (surfaceId) =>
+            store.getState().removeDataModel(surfaceId),
+          updateModel: (surfaceId, path, value) =>
+            store.getState().updateModel(surfaceId, path, value),
+        },
+      );
+      parserRef.current = parser;
+    }
+
     const buffer = new JsonlBuffer();
 
     let chars = 0;
     let count = 0;
-    // 服务端返回的 assistant 文本；有值时优先于本地进度文案
     let serverText = '';
     let hasServerText = false;
 
@@ -259,15 +424,19 @@ export default function App() {
 
       for (const line of lines) {
         parser.parseLine(line);
+        mergeProtocolMessage(protocolRef.current, JSON.parse(line));
         count += 1;
       }
 
-      setProtocolMessages(count);
+      setProtocolCount(protocolRef.current.length);
+      setProtocolJson(JSON.stringify(protocolRef.current, null, 2));
       syncAndRender();
 
       if (!hasServerText) {
         updateMessage(assistantMessageId, {
-          text: `正在生成 UI… 已解析 ${count} 条协议消息`,
+          text: isUpdate
+            ? `正在更新页面… 已解析 ${count} 条变更`
+            : `正在生成页面… 已解析 ${count} 条协议消息`,
         });
       }
     };
@@ -275,6 +444,9 @@ export default function App() {
     try {
       await streamAgent(content, {
         images: pendingImages,
+        currentProtocol,
+        history,
+        targetComponentId,
         onChunk: (chunk) => {
           chars += chunk.length;
           setStreamedChars(chars);
@@ -301,8 +473,11 @@ export default function App() {
         updateMessage(assistantMessageId, { status: 'done' });
       } else {
         updateMessage(assistantMessageId, {
-          text:
-            count > 0
+          text: isUpdate
+            ? count > 0
+              ? `已更新 UI${surfaceId ? `（${surfaceId}）` : ''}，共 ${count} 条变更。`
+              : '未检测到需要变更的界面内容。'
+            : count > 0
               ? `已生成 UI${surfaceId ? `（${surfaceId}）` : ''}，共 ${count} 条协议消息。`
               : '服务端没有返回可渲染的协议消息。',
           status: 'done',
@@ -310,13 +485,15 @@ export default function App() {
       }
       setFeedback({
         type: 'success',
-        text: `AG-UI 流式返回完成：${count} 条协议消息 / ${chars} 字符`,
+        text: `AG-UI 流式${
+          isUpdate ? '更新' : '返回'
+        }完成：${count} 条${isUpdate ? '变更' : '协议消息'} / ${chars} 字符`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : '未知错误';
 
       updateMessage(assistantMessageId, {
-        text: `生成失败：${message}`,
+        text: `${isUpdate ? '更新' : '生成'}失败：${message}`,
         status: 'error',
       });
       setFeedback({
@@ -328,8 +505,31 @@ export default function App() {
     }
   };
 
-  const activeSurfaceId = Object.keys(state.surfaceMap)[0];
-  const errorCount = Object.keys(state.errorMap).length;
+  const send = async () => {
+    const content = input.trim();
+
+    if (!content || isStreaming) return;
+
+    if (chatOnly) {
+      await sendChat(content);
+      return;
+    }
+
+    await sendAgent(content);
+  };
+
+  const copyJson = async () => {
+    if (!protocolJson) return;
+
+    try {
+      await navigator.clipboard.writeText(protocolJson);
+      setFeedback({ type: 'success', text: 'A2UI JSON 已复制到剪贴板' });
+    } catch {
+      setFeedback({ type: 'danger', text: '复制失败，请手动选择代码复制' });
+    }
+  };
+
+  const activeSurface = Object.values(state.surfaceMap)[0];
 
   return (
     <main
@@ -357,8 +557,8 @@ export default function App() {
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {chatOnly
-              ? '仅测试模型对话能力，不渲染 A2UI 组件'
-              : '输入需求，服务端返回 A2UI 协议并实时渲染'}
+              ? '仅测试模型对话能力，不生成 UI'
+              : '输入需求，服务端返回 A2UI JSON 并实时渲染'}
           </Typography.Text>
           <div
             style={{
@@ -371,7 +571,11 @@ export default function App() {
             <Switch
               size="small"
               checked={chatOnly}
-              onChange={setChatOnly}
+              onChange={(checked) => {
+                setChatOnly(checked);
+
+                if (checked) setSelectedComponentId(null);
+              }}
               disabled={isStreaming}
             />
             <Typography.Text style={{ fontSize: 12 }}>
@@ -398,6 +602,28 @@ export default function App() {
         </div>
 
         <div style={{ padding: 12, borderTop: '1px solid #f0f0f0' }}>
+          {selectedComponentId && !chatOnly ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: 8,
+              }}
+            >
+              <Tag
+                color="blue"
+                closable
+                onClose={() => setSelectedComponentId(null)}
+              >
+                目标组件：{selectedComponentId}
+              </Tag>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                下一条消息将针对该组件
+              </Typography.Text>
+            </div>
+          ) : null}
+
           {images.length > 0 ? (
             <div
               style={{
@@ -469,7 +695,7 @@ export default function App() {
             placeholder={
               chatOnly
                 ? '输入任意内容测试模型对话，Enter 发送'
-                : '描述你想要的界面，Enter 发送，Shift + Enter 换行'
+                : '描述你想要的页面，Enter 发送，Shift + Enter 换行'
             }
             autoSize={{ minRows: 2, maxRows: 5 }}
             disabled={isStreaming}
@@ -518,7 +744,7 @@ export default function App() {
         </div>
       </aside>
 
-      {/* 右侧：组件预览区，占剩余 70% */}
+      {/* 右侧：渲染预览 + A2UI JSON，占剩余 70% */}
       <section
         style={{
           flex: 1,
@@ -540,51 +766,159 @@ export default function App() {
         >
           <div>
             <Typography.Title level={4} style={{ margin: 0 }}>
-              组件预览
+              {showJson ? '页面预览与 JSON' : '页面预览'}
             </Typography.Title>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {chatOnly
-                ? '仅模型对话模式，暂不渲染 UI'
-                : activeSurfaceId
-                  ? `surface: ${activeSurfaceId}`
-                  : '等待服务端返回…'}
+                ? '仅模型对话模式，暂不生成 UI'
+                : showJson
+                  ? '左侧为渲染结果，右侧为 A2UI 协议 JSON'
+                  : '已隐藏 JSON 代码，仅显示渲染结果'}
             </Typography.Text>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {chatOnly ? <Tag color="blue">模型对话测试</Tag> : null}
             {chatOnly && isStreaming ? (
               <Tag color="processing">流式对话中</Tag>
             ) : null}
             {!chatOnly && isStreaming ? (
-              <Tag color="processing">流式生成中</Tag>
+              <Tag color="processing">生成中</Tag>
             ) : null}
-            {!chatOnly && !isStreaming && protocolMessages > 0 ? (
+            {!chatOnly && !isStreaming && protocolCount > 0 ? (
               <Tag color="success">已完成</Tag>
             ) : null}
-            {!chatOnly && protocolMessages > 0 ? (
-              <Tag>{protocolMessages} 条消息</Tag>
+            {!chatOnly && protocolCount > 0 ? (
+              <Tag>{protocolCount} 条消息</Tag>
             ) : null}
-            {errorCount > 0 ? <Tag color="error">{errorCount} 个渲染错误</Tag> : null}
+            {!chatOnly ? (
+              <Button size="small" onClick={() => setShowJson((value) => !value)}>
+                {showJson ? '隐藏' : '显示'}
+              </Button>
+            ) : null}
+            {!chatOnly ? (
+              <Button
+                size="small"
+                onClick={() => void copyJson()}
+                disabled={!protocolJson}
+              >
+                复制 JSON
+              </Button>
+            ) : null}
           </div>
         </div>
 
-        <div
-          style={{
-            flex: 1,
-            overflow: 'auto',
-            padding: 24,
-            background: '#fff',
-            border: '1px solid #f0f0f0',
-            borderRadius: 8,
-            boxSizing: 'border-box',
-          }}
-        >
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 12 }}>
           {chatOnly ? (
-            <Empty description="「仅测试模型对话」已开启，右侧不渲染 A2UI 组件" />
-          ) : renderedTree ? (
-            renderedTree.vnode
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                background: '#fff',
+                border: '1px solid #f0f0f0',
+                borderRadius: 8,
+              }}
+            >
+              <div style={{ margin: 'auto' }}>
+                <Empty description="「仅测试模型对话」已开启，右侧不生成 UI" />
+              </div>
+            </div>
           ) : (
-            <Empty description="在左侧输入需求并发送，生成的 UI 会显示在这里" />
+            <>
+              {/* 渲染预览 */}
+              <div
+                style={{
+                  flex: 1.1,
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  background: '#fff',
+                  border: '1px solid #f0f0f0',
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderBottom: '1px solid #f0f0f0',
+                    fontSize: 12,
+                    color: '#595959',
+                  }}
+                >
+                  预览
+                </div>
+                <div
+                  ref={previewRef}
+                  className="a2ui-preview"
+                  onClick={handlePreviewClick}
+                  style={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: 'flex',
+                    overflow: 'auto',
+                    padding: 24,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {renderedTree ? (
+                    <A2uiSurface styles={activeSurface?.styles}>
+                      {renderedTree.vnode}
+                    </A2uiSurface>
+                  ) : (
+                    <div style={{ margin: 'auto' }}>
+                      <Empty description="生成过程中会逐步出现组件" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* A2UI JSON */}
+              {showJson ? (
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    background: '#0f172a',
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: 12,
+                      color: '#94a3b8',
+                    }}
+                  >
+                    <span>A2UI JSON</span>
+                    <span>{protocolCount} 条消息</span>
+                  </div>
+                  <pre
+                    ref={codeRef}
+                    style={{
+                      flex: 1,
+                      minHeight: 0,
+                      margin: 0,
+                      padding: 16,
+                      overflow: 'auto',
+                      color: '#e2e8f0',
+                      fontSize: 12,
+                      lineHeight: 1.7,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {protocolJson || '等待生成…'}
+                  </pre>
+                </div>
+              ) : null}
+            </>
           )}
         </div>
 
@@ -615,7 +949,12 @@ function ChatBubble({ message }: { message: ChatMessage }) {
           borderRadius: 12,
           border: isUser ? 'none' : '1px solid #f0f0f0',
           background: isUser ? '#1677ff' : '#fff',
-          color: message.status === 'error' ? '#cf1322' : isUser ? '#fff' : 'rgba(0, 0, 0, 0.88)',
+          color:
+            message.status === 'error'
+              ? '#cf1322'
+              : isUser
+                ? '#fff'
+                : 'rgba(0, 0, 0, 0.88)',
           fontSize: 14,
           lineHeight: 1.6,
           whiteSpace: 'pre-wrap',

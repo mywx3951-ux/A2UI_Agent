@@ -1,6 +1,11 @@
 // @a2ui/react：基于 React 的 a2ui 协议渲染引擎
 
-import { Children, type AnimationEvent, type CSSProperties, type ReactNode } from 'react';
+import {
+  Children,
+  type AnimationEvent,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import type { A2uiRenderContext, A2uiRenderMap } from '@a2ui/core';
 import { ICON_MAP } from './icons.js';
 
@@ -25,46 +30,51 @@ type Distribution =
 
 type Alignment = 'start' | 'center' | 'end' | 'stretch';
 
-interface FlexProps {
+/** 组件级自定义样式：camelCase CSS 属性，合并后覆盖组件默认样式 */
+interface StyleProps {
+  style?: CSSProperties;
+}
+
+interface FlexProps extends StyleProps {
   distribution?: Distribution;
   alignment?: Alignment;
 }
 
-interface TextProps {
+interface TextProps extends StyleProps {
   text?: Bind<string>;
   usageHint?: string;
 }
 
-interface ImageProps {
+interface ImageProps extends StyleProps {
   url?: Bind<string>;
   altText?: Bind<string>;
   fit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
   usageHint?: keyof typeof IMAGE_SIZE;
 }
 
-interface IconProps {
+interface IconProps extends StyleProps {
   name?: Bind<string>;
 }
 
-interface VideoProps {
+interface VideoProps extends StyleProps {
   url?: Bind<string>;
 }
 
-interface AudioPlayerProps {
+interface AudioPlayerProps extends StyleProps {
   url?: Bind<string>;
   description?: Bind<string>;
 }
 
-interface ListProps {
+interface ListProps extends StyleProps {
   direction?: 'vertical' | 'horizontal';
   alignment?: Alignment;
 }
 
-interface DividerProps {
+interface DividerProps extends StyleProps {
   axis?: 'horizontal' | 'vertical';
 }
 
-interface TabsProps {
+interface TabsProps extends StyleProps {
   tabItems?: Array<{ title?: Bind<string>; child?: string }>;
 }
 
@@ -90,35 +100,35 @@ interface ButtonAction {
   localDataModelUpdate?: LocalDataModelUpdate;
 }
 
-interface ButtonProps {
+interface ButtonProps extends StyleProps {
   primary?: boolean;
   action?: ButtonAction;
 }
 
-interface OpenLinkProps {
+interface OpenLinkProps extends StyleProps {
   url?: Bind<string>;
   text?: Bind<string>;
 }
 
-interface CheckBoxProps {
+interface CheckBoxProps extends StyleProps {
   label?: Bind<string>;
   value?: Bind<boolean>;
 }
 
-interface TextFieldProps {
+interface TextFieldProps extends StyleProps {
   label?: Bind<string>;
   text?: Bind<string>;
   textFieldType?: 'date' | 'longText' | 'number' | 'shortText' | 'obscured';
   validationRegexp?: string;
 }
 
-interface DateTimeInputProps {
+interface DateTimeInputProps extends StyleProps {
   value?: Bind<string>;
   enableDate?: boolean;
   enableTime?: boolean;
 }
 
-interface MultipleChoiceProps {
+interface MultipleChoiceProps extends StyleProps {
   selections?: Bind<string[]>;
   options?: Array<{ label?: Bind<string>; value?: string }>;
   maxAllowedSelections?: number;
@@ -126,7 +136,7 @@ interface MultipleChoiceProps {
   filterable?: boolean;
 }
 
-interface SliderProps {
+interface SliderProps extends StyleProps {
   label?: Bind<string>;
   value?: Bind<number>;
   minValue?: number;
@@ -188,19 +198,66 @@ const FIELD_STYLE: CSSProperties = {
   background: '#fff',
 };
 
+/** 主题色变量：由 A2uiSurface 根据 beginRendering.styles 注入 */
+const PRIMARY_COLOR = 'var(--a2ui-primary-color, #1677ff)';
+const PRIMARY_SOFT = 'var(--a2ui-primary-soft, #e6f4ff)';
+
+/* -------------------------------------------------------------------------- */
+/*                                  主题容器                                   */
+/* -------------------------------------------------------------------------- */
+
+export interface A2uiSurfaceProps {
+  /** beginRendering.styles：目前支持 font 与 primaryColor */
+  styles?: Record<string, unknown>;
+  children?: ReactNode;
+}
+
+/** 十六进制颜色转 rgba，用于生成主色浅色背景 */
+function withAlpha(hex: string, alpha: number): string {
+  const value = hex.slice(1);
+  const red = parseInt(value.slice(0, 2), 16);
+  const green = parseInt(value.slice(2, 4), 16);
+  const blue = parseInt(value.slice(4, 6), 16);
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function surfaceThemeStyle(styles?: Record<string, unknown>): CSSProperties {
+  const rawPrimary =
+    typeof styles?.primaryColor === 'string' ? styles.primaryColor : '';
+  const primary = /^#[0-9a-fA-F]{6}$/.test(rawPrimary) ? rawPrimary : '#1677ff';
+  const font = typeof styles?.font === 'string' ? styles.font.trim() : '';
+
+  return {
+    '--a2ui-primary-color': primary,
+    '--a2ui-primary-soft': withAlpha(primary, 0.12),
+    ...(font ? { fontFamily: font } : null),
+  } as CSSProperties;
+}
+
+/**
+ * A2UI 画布主题容器。
+ * 把 beginRendering.styles 转成 CSS 变量，组件通过 var(--a2ui-primary-color) 读取。
+ */
+export function A2uiSurface({ styles, children }: A2uiSurfaceProps) {
+  return <div style={surfaceThemeStyle(styles)}>{children}</div>;
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                  工具方法                                   */
 /* -------------------------------------------------------------------------- */
 
 /**
  * 新组件挂载时播放 0.3s 高亮淡出动画。
- * 动画结束后通过 SDK 暴露的 markMounted 清除标记。
- * 仅处理自身动画，避免子组件动画冒泡导致父容器被提前标记。
+ * 同时把组件 id 写入 DOM，供 Playground 点击选中。
  */
 function streamFadeProps(context: A2uiRenderContext) {
-  if (context.hasMounted) return {};
+  const base = { 'data-a2ui-id': context.id };
+
+  if (context.hasMounted) return base;
 
   return {
+    ...base,
     className: 'a2ui-stream-fade',
     onAnimationEnd: (event: AnimationEvent<HTMLElement>) => {
       if (event.target === event.currentTarget) {
@@ -208,6 +265,23 @@ function streamFadeProps(context: A2uiRenderContext) {
       }
     },
   };
+}
+
+/**
+ * 合并组件级 style：自定义样式覆盖默认样式。
+ * style 使用 React 的 camelCase CSS 属性写法，值可以是数字或字符串。
+ */
+function componentStyle(
+  props: StyleProps | undefined,
+  base: CSSProperties = {},
+): CSSProperties {
+  const custom = props?.style;
+
+  if (!custom || typeof custom !== 'object' || Array.isArray(custom)) {
+    return base;
+  }
+
+  return { ...base, ...custom };
 }
 
 function asString(
@@ -314,24 +388,25 @@ function joinModelPath(basePath: string, key: string): string {
 function TextView({ props, context }: ViewProps<TextProps>) {
   const content = asString(context, props.text);
   const fade = streamFadeProps(context);
+  const style = componentStyle(props);
 
   switch (props.usageHint) {
     case 'h1':
-      return <h1 {...fade}>{content}</h1>;
+      return <h1 {...fade} style={style}>{content}</h1>;
     case 'h2':
-      return <h2 {...fade}>{content}</h2>;
+      return <h2 {...fade} style={style}>{content}</h2>;
     case 'h3':
-      return <h3 {...fade}>{content}</h3>;
+      return <h3 {...fade} style={style}>{content}</h3>;
     case 'h4':
-      return <h4 {...fade}>{content}</h4>;
+      return <h4 {...fade} style={style}>{content}</h4>;
     case 'h5':
-      return <h5 {...fade}>{content}</h5>;
+      return <h5 {...fade} style={style}>{content}</h5>;
     case 'caption':
-      return <small {...fade}>{content}</small>;
+      return <small {...fade} style={style}>{content}</small>;
     case 'body':
-      return <p {...fade}>{content}</p>;
+      return <p {...fade} style={style}>{content}</p>;
     default:
-      return <span {...fade}>{content}</span>;
+      return <span {...fade} style={style}>{content}</span>;
   }
 }
 
@@ -345,13 +420,13 @@ function ImageView({ props, context }: ViewProps<ImageProps>) {
       {...streamFadeProps(context)}
       src={url}
       alt={alt}
-      style={{
+      style={componentStyle(props, {
         display: 'block',
         objectFit: props.fit ?? 'cover',
         borderRadius: 4,
         background: '#f0f0f0',
         ...size,
-      }}
+      })}
     />
   );
 }
@@ -364,7 +439,7 @@ function IconView({ props, context }: ViewProps<IconProps>) {
       {...streamFadeProps(context)}
       role="img"
       aria-label={name}
-      style={{ display: 'inline-flex', color: '#595959' }}
+      style={componentStyle(props, { display: 'inline-flex', color: '#595959' })}
     >
       <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true">
         {ICON_MAP[name] ?? ICON_MAP.info}
@@ -382,7 +457,12 @@ function VideoView({ props, context }: ViewProps<VideoProps>) {
       src={url}
       controls
       preload="metadata"
-      style={{ width: '100%', maxWidth: 480, borderRadius: 8, background: '#000' }}
+      style={componentStyle(props, {
+        width: '100%',
+        maxWidth: 480,
+        borderRadius: 8,
+        background: '#000',
+      })}
     />
   );
 }
@@ -394,7 +474,11 @@ function AudioPlayerView({ props, context }: ViewProps<AudioPlayerProps>) {
   return (
     <div
       {...streamFadeProps(context)}
-      style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+      style={componentStyle(props, {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+      })}
     >
       <audio src={url} controls style={{ width: '100%' }} />
       {description ? <small style={{ color: '#8c8c8c' }}>{description}</small> : null}
@@ -408,13 +492,13 @@ function ColumnView({ props, context, children }: ViewProps<FlexProps>) {
   return (
     <div
       {...streamFadeProps(context)}
-      style={{
+      style={componentStyle(props, {
         ...CONTAINER_STYLE,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: DISTRIBUTION[distribution ?? 'start'],
         alignItems: ALIGNMENT[alignment ?? 'stretch'],
-      }}
+      })}
     >
       {children}
     </div>
@@ -427,13 +511,13 @@ function RowView({ props, context, children }: ViewProps<FlexProps>) {
   return (
     <div
       {...streamFadeProps(context)}
-      style={{
+      style={componentStyle(props, {
         ...CONTAINER_STYLE,
         display: 'flex',
         flexDirection: 'row',
         justifyContent: DISTRIBUTION[distribution ?? 'start'],
         alignItems: ALIGNMENT[alignment ?? 'stretch'],
-      }}
+      })}
     >
       {children}
     </div>
@@ -444,29 +528,29 @@ function ListView({ props, context, children }: ViewProps<ListProps>) {
   return (
     <div
       {...streamFadeProps(context)}
-      style={{
+      style={componentStyle(props, {
         ...CONTAINER_STYLE,
         display: 'flex',
         flexDirection: props.direction === 'horizontal' ? 'row' : 'column',
         alignItems: ALIGNMENT[props.alignment ?? 'stretch'],
-      }}
+      })}
     >
       {children}
     </div>
   );
 }
 
-function CardView({ context, children }: ViewProps<Record<string, never>>) {
+function CardView({ props, context, children }: ViewProps<StyleProps>) {
   return (
     <div
       {...streamFadeProps(context)}
-      style={{
+      style={componentStyle(props, {
         border: '1px solid #f0f0f0',
         borderRadius: 12,
         padding: 16,
         background: '#fff',
         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.06)',
-      }}
+      })}
     >
       {children}
     </div>
@@ -484,7 +568,11 @@ function TabsView({ props, context, children }: ViewProps<TabsProps>) {
   return (
     <div
       {...streamFadeProps(context)}
-      style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden' }}
+      style={componentStyle(props, {
+        border: '1px solid #f0f0f0',
+        borderRadius: 8,
+        overflow: 'hidden',
+      })}
     >
       {items.map((item, index) => (
         <section
@@ -514,13 +602,17 @@ function TabsView({ props, context, children }: ViewProps<TabsProps>) {
  * Modal 采用只读展示：渲染入口组件，并在下方直接展开内容面板，
  * 避免依赖点击交互才能看到内容。
  */
-function ModalView({ context, children }: ViewProps<Record<string, never>>) {
+function ModalView({ props, context, children }: ViewProps<StyleProps>) {
   const childArray = Children.toArray(children);
 
   return (
     <div
       {...streamFadeProps(context)}
-      style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+      style={componentStyle(props, {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      })}
     >
       <div>{childArray[0] ?? null}</div>
       <div
@@ -552,15 +644,17 @@ function ButtonView({ props, context, children }: ViewProps<ButtonProps>) {
       data-action={action?.name}
       data-action-type={action?.localDataModelUpdate ? 'local' : 'server'}
       onClick={() => triggerLocalAction(action, context)}
-      style={{
+      style={componentStyle(props, {
         padding: '8px 18px',
         borderRadius: 8,
-        border: primary ? '1px solid #1677ff' : '1px solid #d9d9d9',
-        background: primary ? '#1677ff' : '#fff',
+        border: primary
+          ? `1px solid ${PRIMARY_COLOR}`
+          : '1px solid #d9d9d9',
+        background: primary ? PRIMARY_COLOR : '#fff',
         color: primary ? '#fff' : 'rgba(0, 0, 0, 0.88)',
         fontSize: 14,
         cursor: 'pointer',
-      }}
+      })}
     >
       {children}
     </button>
@@ -577,13 +671,13 @@ function OpenLinkView({ props, context }: ViewProps<OpenLinkProps>) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      style={{
+      style={componentStyle(props, {
         display: 'inline-flex',
         alignItems: 'center',
-        color: '#1677ff',
+        color: PRIMARY_COLOR,
         fontSize: 14,
         textDecoration: 'underline',
-      }}
+      })}
     >
       {text}
     </a>
@@ -597,9 +691,19 @@ function CheckBoxView({ props, context }: ViewProps<CheckBoxProps>) {
   return (
     <label
       {...streamFadeProps(context)}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}
+      style={componentStyle(props, {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        fontSize: 14,
+      })}
     >
-      <input type="checkbox" checked={checked} readOnly />
+      <input
+        type="checkbox"
+        checked={checked}
+        readOnly
+        style={{ accentColor: PRIMARY_COLOR }}
+      />
       <span>{label}</span>
     </label>
   );
@@ -620,7 +724,12 @@ function TextFieldView({ props, context }: ViewProps<TextFieldProps>) {
   return (
     <label
       {...streamFadeProps(context)}
-      style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}
+      style={componentStyle(props, {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        fontSize: 13,
+      })}
     >
       <span style={{ color: '#595959' }}>{label}</span>
       {type === 'longText' ? (
@@ -662,7 +771,7 @@ function DateTimeInputView({ props, context }: ViewProps<DateTimeInputProps>) {
       type={type}
       value={toInputValue(raw, type)}
       readOnly
-      style={FIELD_STYLE}
+      style={componentStyle(props, FIELD_STYLE)}
     />
   );
 }
@@ -682,7 +791,12 @@ function MultipleChoiceView({ props, context }: ViewProps<MultipleChoiceProps>) 
   return (
     <div
       {...streamFadeProps(context)}
-      style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14 }}
+      style={componentStyle(props, {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        fontSize: 14,
+      })}
     >
       {options.map((option, index) => {
         const label = asString(context, option.label);
@@ -696,9 +810,9 @@ function MultipleChoiceView({ props, context }: ViewProps<MultipleChoiceProps>) 
                 alignSelf: 'flex-start',
                 padding: '4px 12px',
                 borderRadius: 999,
-                border: `1px solid ${selected ? '#1677ff' : '#d9d9d9'}`,
-                background: selected ? '#e6f4ff' : '#fff',
-                color: selected ? '#0958d9' : 'rgba(0, 0, 0, 0.88)',
+                border: `1px solid ${selected ? PRIMARY_COLOR : '#d9d9d9'}`,
+                background: selected ? PRIMARY_SOFT : '#fff',
+                color: selected ? PRIMARY_COLOR : 'rgba(0, 0, 0, 0.88)',
               }}
             >
               {label}
@@ -711,7 +825,12 @@ function MultipleChoiceView({ props, context }: ViewProps<MultipleChoiceProps>) 
             key={option.value ?? index}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
-            <input type="checkbox" checked={selected} readOnly />
+            <input
+              type="checkbox"
+              checked={selected}
+              readOnly
+              style={{ accentColor: PRIMARY_COLOR }}
+            />
             <span>{label}</span>
           </label>
         );
@@ -729,18 +848,23 @@ function SliderView({ props, context }: ViewProps<SliderProps>) {
   return (
     <div
       {...streamFadeProps(context)}
-      style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}
+      style={componentStyle(props, {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        fontSize: 13,
+      })}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <span style={{ color: '#595959' }}>{label}</span>
-        <span style={{ color: '#1677ff' }}>{value}</span>
+        <span style={{ color: PRIMARY_COLOR }}>{value}</span>
       </div>
       <input
         type="range"
         min={min}
         max={max}
         defaultValue={value}
-        style={{ width: '100%' }}
+        style={{ width: '100%', accentColor: PRIMARY_COLOR }}
       />
     </div>
   );
@@ -753,13 +877,13 @@ function DividerView({ props, context }: ViewProps<DividerProps>) {
         {...streamFadeProps(context)}
         role="separator"
         aria-orientation="vertical"
-        style={{
+        style={componentStyle(props, {
           display: 'inline-block',
           width: 1,
           minHeight: 24,
           alignSelf: 'stretch',
           background: '#e8e8e8',
-        }}
+        })}
       />
     );
   }
@@ -767,12 +891,12 @@ function DividerView({ props, context }: ViewProps<DividerProps>) {
   return (
     <hr
       {...streamFadeProps(context)}
-      style={{
+      style={componentStyle(props, {
         width: '100%',
         margin: '8px 0',
         border: 'none',
         borderTop: '1px solid #e8e8e8',
-      }}
+      })}
     />
   );
 }
@@ -800,13 +924,13 @@ export const renderMap: A2uiRenderMap = {
   List: (props, context) =>
     <ListView props={props as ListProps} context={context} />,
   Card: (props, context) =>
-    <CardView props={props as Record<string, never>} context={context} />,
+    <CardView props={props as StyleProps} context={context} />,
   Tabs: (props, context) =>
     <TabsView props={props as TabsProps} context={context} />,
   Divider: (props, context) =>
     <DividerView props={props as DividerProps} context={context} />,
   Modal: (props, context) =>
-    <ModalView props={props as Record<string, never>} context={context} />,
+    <ModalView props={props as StyleProps} context={context} />,
   Button: (props, context) =>
     <ButtonView props={props as ButtonProps} context={context} />,
   OpenLink: (props, context) =>

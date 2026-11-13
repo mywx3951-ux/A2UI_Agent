@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { cloneElement, createElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { A2uiRenderContext } from '@a2ui/core';
-import { renderMap, triggerLocalAction } from '../src/index.js';
+import { A2uiSurface, renderMap, triggerLocalAction } from '../src/index.js';
 
 const DATA: Record<string, unknown> = {
   user: {
@@ -105,13 +105,39 @@ describe('renderMap – 组件渲染', () => {
         text: { literalString: 'Hello' },
         usageHint: 'h1',
       }),
-      /<h1>Hello<\/h1>/,
+      /<h1[^>]*>Hello<\/h1>/,
     );
 
     assert.match(
       render('Text', { text: { path: '/user/name' }, usageHint: 'body' }),
-      /<p>Ada Lovelace<\/p>/,
+      /<p[^>]*>Ada Lovelace<\/p>/,
     );
+  });
+
+  it('每个组件都支持 style 并覆盖默认样式', () => {
+    assert.match(
+      render('Text', {
+        text: { literalString: 'Styled' },
+        usageHint: 'h1',
+        style: { color: '#ff0000', fontSize: 32 },
+      }),
+      /<h1[^>]*color:#ff0000[^>]*font-size:32px/,
+    );
+
+    const button = render(
+      'Button',
+      {
+        primary: true,
+        style: { backgroundColor: '#ff4d4f', borderRadius: 0 },
+      },
+      '提交',
+    );
+    assert.match(button, /background-color:#ff4d4f/);
+    assert.match(button, /border-radius:0/);
+
+    const column = render('Column', { style: { padding: 24, gap: 16 } }, 'child');
+    assert.match(column, /padding:24px/);
+    assert.match(column, /gap:16px/);
   });
 
   it('Image 渲染 src、alt 与 object-fit', () => {
@@ -208,7 +234,7 @@ describe('renderMap – 组件渲染', () => {
     );
 
     assert.match(html, /打开弹窗/);
-    assert.match(html, /background:#1677ff/);
+    assert.ok(html.includes('background:var(--a2ui-primary-color, #1677ff)'));
     assert.match(html, /data-action="open_modal"/);
     assert.match(html, /data-action-type="server"/);
   });
@@ -387,7 +413,7 @@ describe('renderMap – 组件渲染', () => {
 
     assert.match(html, /邮件/);
     assert.match(html, /短信/);
-    assert.match(html, /background:#e6f4ff/);
+    assert.ok(html.includes('background:var(--a2ui-primary-soft, #e6f4ff)'));
   });
 
   it('Slider 渲染标签、数值与范围', () => {
@@ -402,6 +428,20 @@ describe('renderMap – 组件渲染', () => {
     assert.match(html, />65</);
     assert.match(html, /value="65"/);
     assert.match(html, /max="100"/);
+  });
+
+  it('A2uiSurface 把 styles 注入为 CSS 变量与字体', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        A2uiSurface,
+        { styles: { primaryColor: '#ff0000', font: 'Georgia, serif' } },
+        createElement('span', null, 'themed'),
+      ),
+    );
+
+    assert.match(html, /--a2ui-primary-color:#ff0000/);
+    assert.match(html, /--a2ui-primary-soft:rgba\(255, 0, 0, 0.12\)/);
+    assert.match(html, /font-family:Georgia, serif/);
   });
 
   it('未完成挂载动画的组件带 a2ui-stream-fade 类', () => {
